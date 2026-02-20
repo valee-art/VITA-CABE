@@ -9,7 +9,9 @@ export const PRODUCTS: Product[] = [
     size: '100ml',
     minOrder: 1,
     description: 'Bubuk cabe premium kemasan praktis 100ml. Cocok untuk stok dapur rumah tangga.',
-    category: 'Retail'
+    category: 'Retail',
+    stock: 150,
+    isBestSeller: true
   },
   {
     id: '2',
@@ -19,7 +21,9 @@ export const PRODUCTS: Product[] = [
     size: '200ml',
     minOrder: 1,
     description: 'Bubuk cabe premium kemasan 200ml. Lebih hemat untuk pecinta pedas sejati.',
-    category: 'Retail'
+    category: 'Retail',
+    stock: 85,
+    isBestSeller: true
   },
   {
     id: '3',
@@ -29,18 +33,20 @@ export const PRODUCTS: Product[] = [
     size: '500ml',
     minOrder: 1,
     description: 'Kemasan besar 500ml. Pilihan tepat untuk usaha kuliner atau stok bulanan.',
-    category: 'Retail'
+    category: 'Retail',
+    stock: 40
   },
   {
     id: '4',
     name: 'Paket Grosir (20 pcs)',
-    price: 240000, // Misal 12k/pcs untuk 100ml
+    price: 240000,
     wholesalePrice: 12000,
     level: 4,
     size: '20 x 100ml',
     minOrder: 20,
     description: 'Paket grosir minimal 20 pcs. Harga jauh lebih murah untuk dijual kembali.',
-    category: 'Wholesale'
+    category: 'Wholesale',
+    stock: 25
   },
   {
     id: '5',
@@ -50,23 +56,24 @@ export const PRODUCTS: Product[] = [
     size: 'Mix Sizes',
     minOrder: 1,
     description: 'Paket lengkap reseller termasuk materi promosi dan dukungan penuh dari tim VITA CABE.',
-    category: 'Reseller'
+    category: 'Reseller',
+    stock: 10
   }
 ];
 
 export const TESTIMONIALS = [
-  { id: '1', name: 'Siti Aminah', role: 'Pemilik Warung Bakso', text: 'VITA CABE bikin kuah bakso saya makin merah menggoda dan pedasnya pas banget!', image: '' },
-  { id: '2', name: 'Budi Santoso', role: 'Ibu Rumah Tangga', text: 'Praktis banget buat stok di rumah. Gak perlu repot ulek cabe lagi.', image: '' }
+  { id: '1', name: 'Siti Aminah', role: 'Pemilik Warung Bakso', text: 'VITA CABE bikin kuah bakso saya makin merah menggoda dan pedasnya pas banget!' },
+  { id: '2', name: 'Budi Santoso', role: 'Ibu Rumah Tangga', text: 'Praktis banget buat stok di rumah. Gak perlu repot ulek cabe lagi.' }
 ];
 
 export const CONTACT_INFO = {
   founder: {
     name: 'SELVIA YOSEFIN',
-    phone: '089693308580'
+    phone: '6289693308580'
   },
   admin: {
     name: 'VALE',
-    phone: '08194068927'
+    phone: '628194068927'
   },
   bank: {
     name: 'Mandiri',
