@@ -1439,8 +1439,8 @@ const AdminDashboard = ({ orders, onUpdateStatus }: { orders: OrderData[], onUpd
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const validUsers = [
-      { user: 'vale', pass: '24042009' },
-      { user: 'selvia', pass: '05061999' }
+      { user: 'vale', pass: 'LinElaraNoxaVale' },
+      { user: 'selvia', pass: 'selviaVitaCabe89' }
     ];
 
     const found = validUsers.find(u => u.user === username.toLowerCase() && u.pass === password);
@@ -1498,7 +1498,7 @@ const AdminDashboard = ({ orders, onUpdateStatus }: { orders: OrderData[], onUpd
               <input 
                 type="password" 
                 className="w-full bg-brand-gray border-none rounded-xl p-4 text-white focus:ring-2 focus:ring-brand-red" 
-                placeholder="DDMMYYYY"
+                placeholder="••••••••"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
               />
