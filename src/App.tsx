@@ -1537,18 +1537,55 @@ const AdminDashboard = ({
   orders, 
   products,
   onUpdateStatus,
-  onUpdateStock
+  onUpdateStock,
+  onAddProduct,
+  onDeleteProduct
 }: { 
   orders: OrderData[], 
   products: Product[],
   onUpdateStatus: (id: string, status: OrderData['status']) => void,
-  onUpdateStock: (id: string, newStock: number) => void
+  onUpdateStock: (id: string, newStock: number) => void,
+  onAddProduct: (p: Product) => void,
+  onDeleteProduct: (id: string) => void
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'finance' | 'stock' | 'customers'>('finance');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newProduct, setNewProduct] = useState<Partial<Product>>({
+    name: '',
+    price: 0,
+    level: 3,
+    size: '',
+    minOrder: 1,
+    description: '',
+    category: 'Retail',
+    stock: 0
+  });
+
+  const handleAddProduct = (e: React.FormEvent) => {
+    e.preventDefault();
+    const product: Product = {
+      ...newProduct as Product,
+      id: Math.random().toString(36).substring(2, 9),
+      rating: 5.0,
+      reviews: []
+    };
+    onAddProduct(product);
+    setShowAddForm(false);
+    setNewProduct({
+      name: '',
+      price: 0,
+      level: 3,
+      size: '',
+      minOrder: 1,
+      description: '',
+      category: 'Retail',
+      stock: 0
+    });
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1839,8 +1876,104 @@ const AdminDashboard = ({
         <div className="space-y-8">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-black">Stok Produk</h2>
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Total Produk: {products.length}</div>
+            <button 
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="btn-primary py-2 px-6 text-xs flex items-center gap-2"
+            >
+              {showAddForm ? <X size={14} /> : <Plus size={14} />}
+              {showAddForm ? 'Batal' : 'Tambah Produk'}
+            </button>
           </div>
+
+          <AnimatePresence>
+            {showAddForm && (
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="card bg-brand-dark border-white/10 p-8"
+              >
+                <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-gray-400">Nama Produk</label>
+                    <input 
+                      required
+                      type="text" 
+                      className="w-full bg-brand-gray border-none rounded-xl p-3 text-sm"
+                      value={newProduct.name}
+                      onChange={e => setNewProduct({...newProduct, name: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-gray-400">Harga (Rp)</label>
+                    <input 
+                      required
+                      type="number" 
+                      className="w-full bg-brand-gray border-none rounded-xl p-3 text-sm"
+                      value={newProduct.price}
+                      onChange={e => setNewProduct({...newProduct, price: parseInt(e.target.value) || 0})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-gray-400">Ukuran (e.g. 100ml)</label>
+                    <input 
+                      required
+                      type="text" 
+                      className="w-full bg-brand-gray border-none rounded-xl p-3 text-sm"
+                      value={newProduct.size}
+                      onChange={e => setNewProduct({...newProduct, size: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-gray-400">Kategori</label>
+                    <select 
+                      className="w-full bg-brand-gray border-none rounded-xl p-3 text-sm"
+                      value={newProduct.category}
+                      onChange={e => setNewProduct({...newProduct, category: e.target.value as any})}
+                    >
+                      <option>Retail</option>
+                      <option>Wholesale</option>
+                      <option>Reseller</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-gray-400">Stok Awal</label>
+                    <input 
+                      required
+                      type="number" 
+                      className="w-full bg-brand-gray border-none rounded-xl p-3 text-sm"
+                      value={newProduct.stock}
+                      onChange={e => setNewProduct({...newProduct, stock: parseInt(e.target.value) || 0})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-gray-400">Level Pedas (1-5)</label>
+                    <input 
+                      required
+                      type="number" 
+                      min="1" max="5"
+                      className="w-full bg-brand-gray border-none rounded-xl p-3 text-sm"
+                      value={newProduct.level}
+                      onChange={e => setNewProduct({...newProduct, level: parseInt(e.target.value) || 1})}
+                    />
+                  </div>
+                  <div className="md:col-span-3 space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-gray-400">Deskripsi</label>
+                    <textarea 
+                      required
+                      className="w-full bg-brand-gray border-none rounded-xl p-3 text-sm h-24"
+                      value={newProduct.description}
+                      onChange={e => setNewProduct({...newProduct, description: e.target.value})}
+                    />
+                  </div>
+                  <div className="md:col-span-3">
+                    <button type="submit" className="w-full btn-primary py-4">Simpan Produk</button>
+                  </div>
+                </form>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="bg-brand-dark border border-white/5 rounded-[2rem] overflow-hidden overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
@@ -1874,25 +2007,34 @@ const AdminDashboard = ({
                       </div>
                     </td>
                     <td className="p-6">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => onUpdateStock(product.id, Math.max(0, product.stock - 1))}
+                            className="p-2 bg-brand-gray rounded-lg hover:bg-brand-red transition-colors"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <button 
+                            onClick={() => onUpdateStock(product.id, product.stock + 1)}
+                            className="p-2 bg-brand-gray rounded-lg hover:bg-brand-green transition-colors"
+                          >
+                            <Plus size={14} />
+                          </button>
+                          <input 
+                            type="number" 
+                            className="w-16 bg-brand-gray border-none rounded-lg p-2 text-xs font-bold text-center focus:ring-1 focus:ring-brand-red"
+                            value={product.stock}
+                            onChange={(e) => onUpdateStock(product.id, parseInt(e.target.value) || 0)}
+                          />
+                        </div>
                         <button 
-                          onClick={() => onUpdateStock(product.id, Math.max(0, product.stock - 1))}
-                          className="p-2 bg-brand-gray rounded-lg hover:bg-brand-red transition-colors"
+                          onClick={() => onDeleteProduct(product.id)}
+                          className="p-2 text-gray-500 hover:text-brand-red transition-colors"
+                          title="Hapus Produk"
                         >
-                          <Minus size={14} />
+                          <Trash2 size={18} />
                         </button>
-                        <button 
-                          onClick={() => onUpdateStock(product.id, product.stock + 1)}
-                          className="p-2 bg-brand-gray rounded-lg hover:bg-brand-green transition-colors"
-                        >
-                          <Plus size={14} />
-                        </button>
-                        <input 
-                          type="number" 
-                          className="w-16 bg-brand-gray border-none rounded-lg p-2 text-xs font-bold text-center focus:ring-1 focus:ring-brand-red"
-                          value={product.stock}
-                          onChange={(e) => onUpdateStock(product.id, parseInt(e.target.value) || 0)}
-                        />
                       </div>
                     </td>
                   </tr>
@@ -2067,6 +2209,16 @@ export default function App() {
 
   const handleOrderSuccess = (order: OrderData) => {
     setOrders(prev => [order, ...prev]);
+    
+    // Decrease stock automatically
+    setProducts(prev => prev.map(p => {
+      const orderItem = order.items.find(item => item.id === p.id);
+      if (orderItem) {
+        return { ...p, stock: Math.max(0, p.stock - orderItem.quantity) };
+      }
+      return p;
+    }));
+
     setCart([]);
     addToast('Pesanan berhasil dibuat!', 'success');
     setPage('account');
@@ -2084,6 +2236,18 @@ export default function App() {
       p.id === id ? { ...p, stock: newStock } : p
     ));
     addToast(`Stok produk diperbarui`, 'success');
+  };
+
+  const addProduct = (newProduct: Product) => {
+    setProducts(prev => [...prev, newProduct]);
+    addToast('Produk baru ditambahkan', 'success');
+  };
+
+  const deleteProduct = (id: string) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
+      setProducts(prev => prev.filter(p => p.id !== id));
+      addToast('Produk dihapus', 'info');
+    }
   };
 
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
@@ -2166,6 +2330,8 @@ export default function App() {
                 products={products}
                 onUpdateStatus={updateOrderStatus} 
                 onUpdateStock={updateProductStock}
+                onAddProduct={addProduct}
+                onDeleteProduct={deleteProduct}
               />
             )}
             {page === 'checkout' && <CheckoutPage items={cart} onOrderSuccess={handleOrderSuccess} />}
