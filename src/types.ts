@@ -1,3 +1,11 @@
+export interface Review {
+  id: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  date: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -10,6 +18,8 @@ export interface Product {
   category: 'Retail' | 'Wholesale' | 'Reseller';
   stock: number;
   isBestSeller?: boolean;
+  reviews?: Review[];
+  rating?: number;
 }
 
 export interface CartItem extends Product {

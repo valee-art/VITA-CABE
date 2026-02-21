@@ -11,7 +11,12 @@ export const PRODUCTS: Product[] = [
     description: 'Bubuk cabe premium kemasan praktis 100ml. Cocok untuk stok dapur rumah tangga.',
     category: 'Retail',
     stock: 150,
-    isBestSeller: true
+    isBestSeller: true,
+    rating: 4.8,
+    reviews: [
+      { id: 'r1', userName: 'Andi', rating: 5, comment: 'Pedasnya mantap, pas buat bakso!', date: '12/02/2026' },
+      { id: 'r2', userName: 'Budi', rating: 4, comment: 'Cukup pedas, pengiriman cepat.', date: '15/02/2026' }
+    ]
   },
   {
     id: '2',
@@ -23,7 +28,11 @@ export const PRODUCTS: Product[] = [
     description: 'Bubuk cabe premium kemasan 200ml. Lebih hemat untuk pecinta pedas sejati.',
     category: 'Retail',
     stock: 85,
-    isBestSeller: true
+    isBestSeller: true,
+    rating: 4.9,
+    reviews: [
+      { id: 'r3', userName: 'Santi', rating: 5, comment: 'Langganan terus di sini, kualitas oke.', date: '18/02/2026' }
+    ]
   },
   {
     id: '3',
@@ -34,7 +43,11 @@ export const PRODUCTS: Product[] = [
     minOrder: 1,
     description: 'Kemasan besar 500ml. Pilihan tepat untuk usaha kuliner atau stok bulanan.',
     category: 'Retail',
-    stock: 40
+    stock: 40,
+    rating: 5.0,
+    reviews: [
+      { id: 'r4', userName: 'Warung Makan Barokah', rating: 5, comment: 'Sangat membantu untuk bumbu masakan warung saya.', date: '20/02/2026' }
+    ]
   },
   {
     id: '4',
@@ -46,7 +59,8 @@ export const PRODUCTS: Product[] = [
     minOrder: 20,
     description: 'Paket grosir minimal 20 pcs. Harga jauh lebih murah untuk dijual kembali.',
     category: 'Wholesale',
-    stock: 25
+    stock: 25,
+    rating: 4.7
   },
   {
     id: '5',
@@ -57,7 +71,8 @@ export const PRODUCTS: Product[] = [
     minOrder: 1,
     description: 'Paket lengkap reseller termasuk materi promosi dan dukungan penuh dari tim VITA CABE.',
     category: 'Reseller',
-    stock: 10
+    stock: 10,
+    rating: 5.0
   }
 ];
 

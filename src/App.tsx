@@ -363,14 +363,21 @@ const ProductDetailModal = ({
                 <div className="text-3xl font-black text-brand-red">
                   Rp {product.price.toLocaleString('id-ID')}
                 </div>
-                <div className="flex gap-1 bg-brand-red/10 px-3 py-1 rounded-full">
-                  {[...Array(5)].map((_, i) => (
-                    <Flame 
-                      key={i} 
-                      size={14} 
-                      className={i < product.level ? "text-brand-red fill-brand-red" : "text-white/10"} 
-                    />
-                  ))}
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1 bg-brand-red/10 px-3 py-1 rounded-full">
+                    {[...Array(5)].map((_, i) => (
+                      <Flame 
+                        key={i} 
+                        size={14} 
+                        className={i < product.level ? "text-brand-red fill-brand-red" : "text-white/10"} 
+                      />
+                    ))}
+                  </div>
+                  {product.rating && (
+                    <div className="flex items-center gap-1 text-xs font-bold text-yellow-500">
+                      <Star size={12} fill="currentColor" /> {product.rating}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -383,6 +390,28 @@ const ProductDetailModal = ({
                 • Proses Higienis & Alami<br />
                 • Level Pedas {product.level}/5
               </p>
+
+              {product.reviews && product.reviews.length > 0 && (
+                <div className="space-y-4">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Ulasan Pelanggan:</span>
+                  <div className="space-y-3">
+                    {product.reviews.map(review => (
+                      <div key={review.id} className="bg-white/5 p-4 rounded-xl border border-white/5 space-y-1">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-white">{review.userName}</span>
+                          <span className="text-[10px] text-gray-500">{review.date}</span>
+                        </div>
+                        <div className="flex gap-0.5">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} size={10} className={i < review.rating ? "text-yellow-500 fill-yellow-500" : "text-white/10"} />
+                          ))}
+                        </div>
+                        <p className="text-xs text-gray-400">{review.comment}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {related.length > 0 && (
                 <div className="space-y-4">
@@ -1378,7 +1407,39 @@ const AccountPage = ({
                     <div className="text-brand-green font-bold">{order.status}</div>
                   </div>
                 </div>
-                <div className="grid md:grid-cols-2 gap-8">
+
+                {/* Tracking Timeline */}
+                <div className="py-4">
+                  <div className="relative flex justify-between">
+                    <div className="absolute top-1/2 left-0 w-full h-0.5 bg-white/10 -translate-y-1/2 z-0" />
+                    <div 
+                      className="absolute top-1/2 left-0 h-0.5 bg-brand-green -translate-y-1/2 z-0 transition-all duration-1000" 
+                      style={{ 
+                        width: order.status === 'Menunggu Pembayaran' ? '0%' : 
+                               order.status === 'Diproses' ? '33%' : 
+                               order.status === 'Dikirim' ? '66%' : '100%' 
+                      }} 
+                    />
+                    {['Menunggu Pembayaran', 'Diproses', 'Dikirim', 'Selesai'].map((s, i) => (
+                      <div key={s} className="relative z-10 flex flex-col items-center gap-2">
+                        <div className={cn(
+                          "w-4 h-4 rounded-full border-2 transition-colors duration-500",
+                          order.status === s || (i < ['Menunggu Pembayaran', 'Diproses', 'Dikirim', 'Selesai'].indexOf(order.status))
+                            ? "bg-brand-green border-brand-green" 
+                            : "bg-brand-dark border-white/20"
+                        )} />
+                        <span className={cn(
+                          "text-[8px] font-bold uppercase tracking-tighter text-center max-w-[60px]",
+                          order.status === s ? "text-white" : "text-gray-600"
+                        )}>
+                          {s}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-8 pt-6 border-t border-white/5">
                   <div className="space-y-4">
                     {order.items.map((item, i) => (
                       <div key={i} className="flex justify-between text-sm">
@@ -1430,11 +1491,22 @@ const AccountPage = ({
   );
 };
 
-const AdminDashboard = ({ orders, onUpdateStatus }: { orders: OrderData[], onUpdateStatus: (id: string, status: OrderData['status']) => void }) => {
+const AdminDashboard = ({ 
+  orders, 
+  products,
+  onUpdateStatus,
+  onUpdateStock
+}: { 
+  orders: OrderData[], 
+  products: Product[],
+  onUpdateStatus: (id: string, status: OrderData['status']) => void,
+  onUpdateStock: (id: string, newStock: number) => void
+}) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState<'finance' | 'stock'>('finance');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1513,138 +1585,231 @@ const AdminDashboard = ({ orders, onUpdateStatus }: { orders: OrderData[], onUpd
 
   return (
     <div className="pt-32 pb-24 px-4 max-w-7xl mx-auto space-y-12 text-white">
-      <div className="flex flex-col md:flex-row justify-between items-end gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-end gap-8">
         <div className="space-y-2">
-          <h1 className="text-4xl font-black tracking-tight">Dashboard Keuangan</h1>
-          <p className="text-gray-500">Laporan pendapatan VITA CABE secara real-time.</p>
+          <h1 className="text-4xl font-black tracking-tight">Admin Dashboard</h1>
+          <p className="text-gray-500">Kelola keuangan dan stok VITA CABE.</p>
         </div>
-        <button onClick={() => setIsAuthenticated(false)} className="text-xs font-bold text-gray-500 hover:text-brand-red uppercase tracking-widest">Logout</button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="card bg-brand-gray border-white/5 p-8 space-y-4">
-          <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Total Pendapatan</div>
-          <div className="text-3xl font-black text-brand-red">Rp {totalRevenue.toLocaleString('id-ID')}</div>
-          <div className="text-[10px] text-gray-400">Dari {orders.length} total pesanan</div>
-        </div>
-        <div className="card bg-brand-gray border-white/5 p-8 space-y-4">
-          <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Pendapatan Reseller/Grosir</div>
-          <div className="text-3xl font-black text-brand-green">Rp {resellerRevenue.toLocaleString('id-ID')}</div>
-          <div className="text-[10px] text-gray-400">{resellerOrders.length} pesanan skala besar</div>
-        </div>
-        <div className="card bg-brand-gray border-white/5 p-8 space-y-4">
-          <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Pendapatan Retail</div>
-          <div className="text-3xl font-black text-white">Rp {retailRevenue.toLocaleString('id-ID')}</div>
-          <div className="text-[10px] text-gray-400">Penjualan satuan langsung</div>
-        </div>
-      </div>
-
-      {/* Revenue Chart */}
-      <div className="card bg-brand-dark border border-white/5 p-8 space-y-6">
-        <div className="flex items-center gap-2">
-          <BarChart3 className="text-brand-red" size={20} />
-          <h2 className="text-xl font-black">Tren Pendapatan (7 Hari Terakhir)</h2>
-        </div>
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-              <XAxis 
-                dataKey="name" 
-                stroke="#666" 
-                fontSize={12} 
-                tickLine={false} 
-                axisLine={false} 
-              />
-              <YAxis 
-                stroke="#666" 
-                fontSize={12} 
-                tickLine={false} 
-                axisLine={false}
-                tickFormatter={(value) => `Rp ${value/1000}k`}
-              />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '12px' }}
-                itemStyle={{ color: '#ff4d4d', fontWeight: 'bold' }}
-                formatter={(value: number) => [`Rp ${value.toLocaleString('id-ID')}`, 'Pendapatan']}
-              />
-              <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
-                {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={index === chartData.length - 1 ? '#ff4d4d' : '#333'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="flex bg-brand-gray p-1 rounded-2xl border border-white/5">
+          <button 
+            onClick={() => setActiveTab('finance')}
+            className={cn(
+              "px-6 py-2 rounded-xl font-bold text-xs transition-all",
+              activeTab === 'finance' ? 'bg-brand-red text-white shadow-lg' : 'text-gray-500 hover:text-white'
+            )}
+          >
+            Keuangan
+          </button>
+          <button 
+            onClick={() => setActiveTab('stock')}
+            className={cn(
+              "px-6 py-2 rounded-xl font-bold text-xs transition-all",
+              activeTab === 'stock' ? 'bg-brand-red text-white shadow-lg' : 'text-gray-500 hover:text-white'
+            )}
+          >
+            Manajemen Stok
+          </button>
+          <button onClick={() => setIsAuthenticated(false)} className="px-6 py-2 text-xs font-bold text-gray-500 hover:text-brand-red uppercase tracking-widest">Logout</button>
         </div>
       </div>
 
-      <div className="space-y-8">
-        <h2 className="text-2xl font-black">Transaksi Terbaru</h2>
-        <div className="bg-brand-dark border border-white/5 rounded-[2rem] overflow-hidden overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[800px]">
-            <thead>
-              <tr className="bg-white/5 text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                <th className="p-6">ID Pesanan</th>
-                <th className="p-6">Pelanggan</th>
-                <th className="p-6">Item</th>
-                <th className="p-6">Total</th>
-                <th className="p-6">Status</th>
-                <th className="p-6">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {orders.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="p-12 text-center text-gray-500 italic">Belum ada data transaksi</td>
+      {activeTab === 'finance' ? (
+        <div className="space-y-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="card bg-brand-gray border-white/5 p-8 space-y-4">
+              <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Total Pendapatan</div>
+              <div className="text-3xl font-black text-brand-red">Rp {totalRevenue.toLocaleString('id-ID')}</div>
+              <div className="text-[10px] text-gray-400">Dari {orders.length} total pesanan</div>
+            </div>
+            <div className="card bg-brand-gray border-white/5 p-8 space-y-4">
+              <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Pendapatan Reseller/Grosir</div>
+              <div className="text-3xl font-black text-brand-green">Rp {resellerRevenue.toLocaleString('id-ID')}</div>
+              <div className="text-[10px] text-gray-400">{resellerOrders.length} pesanan skala besar</div>
+            </div>
+            <div className="card bg-brand-gray border-white/5 p-8 space-y-4">
+              <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Pendapatan Retail</div>
+              <div className="text-3xl font-black text-white">Rp {retailRevenue.toLocaleString('id-ID')}</div>
+              <div className="text-[10px] text-gray-400">Penjualan satuan langsung</div>
+            </div>
+          </div>
+
+          {/* Revenue Chart */}
+          <div className="card bg-brand-dark border border-white/5 p-8 space-y-6">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="text-brand-red" size={20} />
+              <h2 className="text-xl font-black">Tren Pendapatan (7 Hari Terakhir)</h2>
+            </div>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="#666" 
+                    fontSize={12} 
+                    tickLine={false} 
+                    axisLine={false} 
+                  />
+                  <YAxis 
+                    stroke="#666" 
+                    fontSize={12} 
+                    tickLine={false} 
+                    axisLine={false}
+                    tickFormatter={(value) => `Rp ${value/1000}k`}
+                  />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '12px' }}
+                    itemStyle={{ color: '#ff4d4d', fontWeight: 'bold' }}
+                    formatter={(value: number) => [`Rp ${value.toLocaleString('id-ID')}`, 'Pendapatan']}
+                  />
+                  <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={index === chartData.length - 1 ? '#ff4d4d' : '#333'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="space-y-8">
+            <h2 className="text-2xl font-black">Transaksi Terbaru</h2>
+            <div className="bg-brand-dark border border-white/5 rounded-[2rem] overflow-hidden overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[800px]">
+                <thead>
+                  <tr className="bg-white/5 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                    <th className="p-6">ID Pesanan</th>
+                    <th className="p-6">Pelanggan</th>
+                    <th className="p-6">Item</th>
+                    <th className="p-6">Total</th>
+                    <th className="p-6">Status</th>
+                    <th className="p-6">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {orders.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-12 text-center text-gray-500 italic">Belum ada data transaksi</td>
+                    </tr>
+                  ) : (
+                    orders.map(order => (
+                      <tr key={order.id} className="hover:bg-white/5 transition-colors">
+                        <td className="p-6 font-bold text-sm">{order.id}</td>
+                        <td className="p-6">
+                          <div className="text-sm font-bold text-white">{order.name}</div>
+                          <div className="text-[10px] text-gray-500">{order.phone}</div>
+                        </td>
+                        <td className="p-6">
+                          <div className="text-xs text-gray-400">
+                            {order.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}
+                          </div>
+                        </td>
+                        <td className="p-6 font-black text-brand-red text-sm">Rp {order.total.toLocaleString('id-ID')}</td>
+                        <td className="p-6">
+                          <span className={cn(
+                            "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest",
+                            order.status === 'Selesai' ? 'bg-brand-green/10 text-brand-green' : 'bg-brand-red/10 text-brand-red'
+                          )}>
+                            {order.status}
+                          </span>
+                        </td>
+                        <td className="p-6">
+                          <select 
+                            className="bg-brand-gray text-[10px] font-bold uppercase p-2 rounded-lg border-none focus:ring-1 focus:ring-brand-red"
+                            value={order.status}
+                            onChange={(e) => onUpdateStatus(order.id, e.target.value as any)}
+                          >
+                            <option>Menunggu Pembayaran</option>
+                            <option>Diproses</option>
+                            <option>Dikirim</option>
+                            <option>Selesai</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-black">Stok Produk</h2>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Total Produk: {products.length}</div>
+          </div>
+          <div className="bg-brand-dark border border-white/5 rounded-[2rem] overflow-hidden overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead>
+                <tr className="bg-white/5 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                  <th className="p-6">Produk</th>
+                  <th className="p-6">Kategori</th>
+                  <th className="p-6">Harga</th>
+                  <th className="p-6">Stok Saat Ini</th>
+                  <th className="p-6">Aksi</th>
                 </tr>
-              ) : (
-                orders.map(order => (
-                  <tr key={order.id} className="hover:bg-white/5 transition-colors">
-                    <td className="p-6 font-bold text-sm">{order.id}</td>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {products.map(product => (
+                  <tr key={product.id} className="hover:bg-white/5 transition-colors">
                     <td className="p-6">
-                      <div className="text-sm font-bold text-white">{order.name}</div>
-                      <div className="text-[10px] text-gray-500">{order.phone}</div>
+                      <div className="text-sm font-bold text-white">{product.name}</div>
+                      <div className="text-[10px] text-gray-500">{product.size}</div>
                     </td>
                     <td className="p-6">
-                      <div className="text-xs text-gray-400">
-                        {order.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}
-                      </div>
-                    </td>
-                    <td className="p-6 font-black text-brand-red text-sm">Rp {order.total.toLocaleString('id-ID')}</td>
-                    <td className="p-6">
-                      <span className={cn(
-                        "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest",
-                        order.status === 'Selesai' ? 'bg-brand-green/10 text-brand-green' : 'bg-brand-red/10 text-brand-red'
-                      )}>
-                        {order.status}
+                      <span className="px-3 py-1 bg-white/5 rounded-full text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                        {product.category}
                       </span>
                     </td>
+                    <td className="p-6 font-bold text-sm">Rp {product.price.toLocaleString('id-ID')}</td>
                     <td className="p-6">
-                      <select 
-                        className="bg-brand-gray text-[10px] font-bold uppercase p-2 rounded-lg border-none focus:ring-1 focus:ring-brand-red"
-                        value={order.status}
-                        onChange={(e) => onUpdateStatus(order.id, e.target.value as any)}
-                      >
-                        <option>Menunggu Pembayaran</option>
-                        <option>Diproses</option>
-                        <option>Dikirim</option>
-                        <option>Selesai</option>
-                      </select>
+                      <div className={cn(
+                        "text-sm font-black",
+                        product.stock < 20 ? "text-brand-red" : "text-brand-green"
+                      )}>
+                        {product.stock} pcs
+                      </div>
+                    </td>
+                    <td className="p-6">
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => onUpdateStock(product.id, Math.max(0, product.stock - 1))}
+                          className="p-2 bg-brand-gray rounded-lg hover:bg-brand-red transition-colors"
+                        >
+                          <Minus size={14} />
+                        </button>
+                        <button 
+                          onClick={() => onUpdateStock(product.id, product.stock + 1)}
+                          className="p-2 bg-brand-gray rounded-lg hover:bg-brand-green transition-colors"
+                        >
+                          <Plus size={14} />
+                        </button>
+                        <input 
+                          type="number" 
+                          className="w-16 bg-brand-gray border-none rounded-lg p-2 text-xs font-bold text-center focus:ring-1 focus:ring-brand-red"
+                          value={product.stock}
+                          onChange={(e) => onUpdateStock(product.id, parseInt(e.target.value) || 0)}
+                        />
+                      </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
 
 export default function App() {
   const [page, setPage] = useState<Page>('home');
-  const [products] = useState<Product[]>(PRODUCTS);
+  const [products, setProducts] = useState<Product[]>(() => {
+    const saved = localStorage.getItem('vitacabe_products');
+    return saved ? JSON.parse(saved) : PRODUCTS;
+  });
   const [testimonials] = useState(TESTIMONIALS);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -1661,6 +1826,11 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
   const [toasts, setToasts] = useState<Toast[]>([]);
+
+  // Persist Products (Stock)
+  useEffect(() => {
+    localStorage.setItem('vitacabe_products', JSON.stringify(products));
+  }, [products]);
 
   // Persist Wishlist
   useEffect(() => {
@@ -1761,6 +1931,13 @@ export default function App() {
     addToast(`Status pesanan ${id} diperbarui`, 'success');
   };
 
+  const updateProductStock = (id: string, newStock: number) => {
+    setProducts(prev => prev.map(p => 
+      p.id === id ? { ...p, stock: newStock } : p
+    ));
+    addToast(`Stok produk diperbarui`, 'success');
+  };
+
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
@@ -1833,7 +2010,14 @@ export default function App() {
                 onToggleWishlist={toggleWishlist}
               />
             )}
-            {page === 'admin' && <AdminDashboard orders={orders} onUpdateStatus={updateOrderStatus} />}
+            {page === 'admin' && (
+              <AdminDashboard 
+                orders={orders} 
+                products={products}
+                onUpdateStatus={updateOrderStatus} 
+                onUpdateStock={updateProductStock}
+              />
+            )}
             {page === 'checkout' && <CheckoutPage items={cart} onOrderSuccess={handleOrderSuccess} />}
           </motion.div>
         </AnimatePresence>
