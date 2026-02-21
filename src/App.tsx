@@ -34,7 +34,9 @@ import {
   Download,
   Mail,
   Send,
-  UserCheck
+  UserCheck,
+  Edit,
+  Save
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -57,23 +59,6 @@ function cn(...inputs: ClassValue[]) {
 import { PRODUCTS, CONTACT_INFO, TESTIMONIALS } from './constants';
 
 // --- Components ---
-
-const AnnouncementBar = () => {
-  return (
-    <div className="bg-brand-red text-white py-2 px-4 text-center overflow-hidden relative z-[150]">
-      <motion.div
-        animate={{ x: [1000, -1000] }}
-        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        className="whitespace-nowrap text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-8"
-      >
-        <span>🔥 PROMO SPESIAL: DISKON 10% UNTUK PELANGGAN BARU! GUNAKAN KODE: VITA10</span>
-        <span>🌶️ VITA CABE: PEDASNYA NAMPOL, KUALITAS PREMIUM TANPA CAMPURAN!</span>
-        <span>🚚 GRATIS ONGKIR UNTUK WILAYAH TAMBORA & SEKITARNYA!</span>
-        <span>🔥 PROMO SPESIAL: DISKON 10% UNTUK PELANGGAN BARU! GUNAKAN KODE: VITA10</span>
-      </motion.div>
-    </div>
-  );
-};
 
 const FloatingWhatsApp = () => {
   return (
@@ -144,7 +129,6 @@ const Navbar = ({
     { label: 'Beranda', value: 'home' },
     { label: 'Produk', value: 'products' },
     { label: 'Grosir', value: 'wholesale' },
-    { label: 'Promo', value: 'promo' },
     { label: 'Tentang', value: 'about' },
     { label: 'Kontak', value: 'contact' },
     { label: 'Akun', value: 'account' },
@@ -288,7 +272,16 @@ const ProductCard = ({
         onClick={() => onViewDetail(product)}
         className="aspect-square rounded-xl mb-4 bg-brand-dark flex items-center justify-center cursor-pointer group relative overflow-hidden"
       >
-        <Flame size={64} className="text-brand-red opacity-20 group-hover:scale-110 transition-transform" />
+        {product.image ? (
+          <img 
+            src={product.image} 
+            alt={product.name} 
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <Flame size={64} className="text-brand-red opacity-20 group-hover:scale-110 transition-transform" />
+        )}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
           <span className="text-white text-[10px] font-bold px-4 py-2 rounded-full border border-white/20 backdrop-blur-md">
             Lihat Detail
@@ -400,6 +393,17 @@ const ProductDetailModal = ({
                   <X size={24} />
                 </button>
               </div>
+
+              {product.image && (
+                <div className="aspect-video w-full rounded-2xl overflow-hidden bg-brand-gray border border-white/5">
+                  <img 
+                    src={product.image} 
+                    alt={product.name} 
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+              )}
 
               <div className="flex items-center gap-4">
                 <div className="text-3xl font-black text-brand-red">
@@ -1218,21 +1222,10 @@ const CheckoutPage = ({ items, onOrderSuccess }: { items: CartItem[], onOrderSuc
     paymentMethod: 'Transfer Bank',
     shipping: 'Reguler (Rp 10.000)'
   });
-  const [promoCode, setPromoCode] = useState('');
-  const [discount, setDiscount] = useState(0);
 
   const shippingCost = formData.shipping.includes('10.000') ? 10000 : 25000;
   const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const total = subtotal + shippingCost - discount;
-
-  const applyPromo = () => {
-    if (promoCode.toUpperCase() === 'VITA10') {
-      setDiscount(subtotal * 0.1);
-      alert('Promo VITA10 berhasil digunakan!');
-    } else {
-      alert('Kode promo tidak valid.');
-    }
-  };
+  const total = subtotal + shippingCost;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1327,22 +1320,6 @@ const CheckoutPage = ({ items, onOrderSuccess }: { items: CartItem[], onOrderSuc
             </div>
 
             <div className="pt-6 border-t border-white/10 space-y-4">
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  placeholder="Kode Promo" 
-                  value={promoCode}
-                  onChange={e => setPromoCode(e.target.value)}
-                  className="bg-brand-gray border-none rounded-xl p-3 text-sm text-white flex-grow focus:ring-1 focus:ring-brand-red" 
-                />
-                <button 
-                  onClick={applyPromo}
-                  className="bg-brand-red px-4 rounded-xl text-xs font-bold text-white"
-                >
-                  Pakai
-                </button>
-              </div>
-
               <div className="space-y-2 pt-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Subtotal</span>
@@ -1352,12 +1329,6 @@ const CheckoutPage = ({ items, onOrderSuccess }: { items: CartItem[], onOrderSuc
                   <span className="text-gray-400">Ongkos Kirim</span>
                   <span className="font-bold text-white">Rp {shippingCost.toLocaleString('id-ID')}</span>
                 </div>
-                {discount > 0 && (
-                  <div className="flex justify-between text-sm text-brand-green">
-                    <span>Diskon Promo</span>
-                    <span className="font-bold">- Rp {discount.toLocaleString('id-ID')}</span>
-                  </div>
-                )}
                 <div className="flex justify-between text-xl font-black pt-4 border-t border-white/5">
                   <span className="text-white">Total</span>
                   <span className="text-brand-red">Rp {total.toLocaleString('id-ID')}</span>
@@ -1539,14 +1510,16 @@ const AdminDashboard = ({
   onUpdateStatus,
   onUpdateStock,
   onAddProduct,
-  onDeleteProduct
+  onDeleteProduct,
+  onUpdateProduct
 }: { 
   orders: OrderData[], 
   products: Product[],
   onUpdateStatus: (id: string, status: OrderData['status']) => void,
   onUpdateStock: (id: string, newStock: number) => void,
   onAddProduct: (p: Product) => void,
-  onDeleteProduct: (id: string) => void
+  onDeleteProduct: (id: string) => void,
+  onUpdateProduct: (p: Product) => void
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
@@ -1554,6 +1527,7 @@ const AdminDashboard = ({
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'finance' | 'stock' | 'customers'>('finance');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<string | null>(null);
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
     name: '',
     price: 0,
@@ -1562,18 +1536,24 @@ const AdminDashboard = ({
     minOrder: 1,
     description: '',
     category: 'Retail',
-    stock: 0
+    stock: 0,
+    image: ''
   });
 
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
-    const product: Product = {
-      ...newProduct as Product,
-      id: Math.random().toString(36).substring(2, 9),
-      rating: 5.0,
-      reviews: []
-    };
-    onAddProduct(product);
+    if (editingProduct) {
+      onUpdateProduct({ ...newProduct as Product, id: editingProduct });
+      setEditingProduct(null);
+    } else {
+      const product: Product = {
+        ...newProduct as Product,
+        id: Math.random().toString(36).substring(2, 9),
+        rating: 5.0,
+        reviews: []
+      };
+      onAddProduct(product);
+    }
     setShowAddForm(false);
     setNewProduct({
       name: '',
@@ -1583,8 +1563,15 @@ const AdminDashboard = ({
       minOrder: 1,
       description: '',
       category: 'Retail',
-      stock: 0
+      stock: 0,
+      image: ''
     });
+  };
+
+  const startEdit = (product: Product) => {
+    setNewProduct(product);
+    setEditingProduct(product.id);
+    setShowAddForm(true);
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -1893,6 +1880,7 @@ const AdminDashboard = ({
                 exit={{ opacity: 0, y: -20 }}
                 className="card bg-brand-dark border-white/10 p-8"
               >
+                <h3 className="text-xl font-black mb-6">{editingProduct ? 'Edit Produk' : 'Tambah Produk Baru'}</h3>
                 <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-widest text-gray-400">Nama Produk</label>
@@ -1958,6 +1946,17 @@ const AdminDashboard = ({
                     />
                   </div>
                   <div className="md:col-span-3 space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-gray-400">URL Foto Produk</label>
+                    <input 
+                      type="text" 
+                      placeholder="https://picsum.photos/400/400"
+                      className="w-full bg-brand-gray border-none rounded-xl p-3 text-sm"
+                      value={newProduct.image}
+                      onChange={e => setNewProduct({...newProduct, image: e.target.value})}
+                    />
+                    <p className="text-[10px] text-gray-500 italic">Gunakan link foto dari internet (e.g. Google Drive, Imgur, atau Picsum).</p>
+                  </div>
+                  <div className="md:col-span-3 space-y-2">
                     <label className="text-xs font-bold uppercase tracking-widest text-gray-400">Deskripsi</label>
                     <textarea 
                       required
@@ -1967,7 +1966,10 @@ const AdminDashboard = ({
                     />
                   </div>
                   <div className="md:col-span-3">
-                    <button type="submit" className="w-full btn-primary py-4">Simpan Produk</button>
+                    <button type="submit" className="w-full btn-primary py-4 flex items-center justify-center gap-2">
+                      {editingProduct ? <Save size={18} /> : <Plus size={18} />}
+                      {editingProduct ? 'Simpan Perubahan' : 'Simpan Produk'}
+                    </button>
                   </div>
                 </form>
               </motion.div>
@@ -2028,13 +2030,22 @@ const AdminDashboard = ({
                             onChange={(e) => onUpdateStock(product.id, parseInt(e.target.value) || 0)}
                           />
                         </div>
-                        <button 
-                          onClick={() => onDeleteProduct(product.id)}
-                          className="p-2 text-gray-500 hover:text-brand-red transition-colors"
-                          title="Hapus Produk"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button 
+                            onClick={() => startEdit(product)}
+                            className="p-2 text-gray-500 hover:text-brand-green transition-colors"
+                            title="Edit Produk"
+                          >
+                            <Edit size={18} />
+                          </button>
+                          <button 
+                            onClick={() => onDeleteProduct(product.id)}
+                            className="p-2 text-gray-500 hover:text-brand-red transition-colors"
+                            title="Hapus Produk"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -2250,11 +2261,17 @@ export default function App() {
     }
   };
 
+  const updateProduct = (updatedProduct: Product) => {
+    setProducts(prev => prev.map(p => 
+      p.id === updatedProduct.id ? updatedProduct : p
+    ));
+    addToast('Produk diperbarui', 'success');
+  };
+
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-black">
-      <AnnouncementBar />
       <Navbar 
         currentPage={page} 
         setPage={setPage} 
@@ -2297,21 +2314,6 @@ export default function App() {
               />
             )}
             {page === 'wholesale' && <WholesalePage />}
-            {page === 'promo' && (
-              <div className="pt-32 pb-24 px-4 text-center space-y-8">
-                <h1 className="text-4xl font-black text-white">Promo Spesial</h1>
-                <div className="max-w-xl mx-auto bg-brand-red text-white p-12 rounded-[2rem] shadow-2xl space-y-4">
-                  <div className="text-6xl font-black">DISKON 10%</div>
-                  <p className="text-lg opacity-80">Khusus untuk pelanggan baru!</p>
-                  <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl font-bold text-sm uppercase tracking-widest border border-white/20">
-                    Gunakan Kode: <span className="text-white">VITA10</span>
-                  </div>
-                  <button onClick={() => setPage('products')} className="bg-white text-brand-red px-8 py-3 rounded-xl font-bold mt-4 hover:bg-white/90 transition-colors">
-                    Belanja Sekarang
-                  </button>
-                </div>
-              </div>
-            )}
             {page === 'about' && <AboutPage />}
             {page === 'contact' && <ContactPage />}
             {page === 'account' && (
@@ -2332,6 +2334,7 @@ export default function App() {
                 onUpdateStock={updateProductStock}
                 onAddProduct={addProduct}
                 onDeleteProduct={deleteProduct}
+                onUpdateProduct={updateProduct}
               />
             )}
             {page === 'checkout' && <CheckoutPage items={cart} onOrderSuccess={handleOrderSuccess} />}

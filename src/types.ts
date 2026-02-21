@@ -20,13 +20,14 @@ export interface Product {
   isBestSeller?: boolean;
   reviews?: Review[];
   rating?: number;
+  image?: string;
 }
 
 export interface CartItem extends Product {
   quantity: number;
 }
 
-export type Page = 'home' | 'products' | 'wholesale' | 'promo' | 'about' | 'contact' | 'checkout' | 'account' | 'admin';
+export type Page = 'home' | 'products' | 'wholesale' | 'about' | 'contact' | 'checkout' | 'account' | 'admin';
 
 export interface OrderData {
   id: string;
