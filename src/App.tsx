@@ -29,7 +29,12 @@ import {
   BarChart3,
   Filter,
   ArrowUpDown,
-  AlertCircle
+  AlertCircle,
+  Bell,
+  Download,
+  Mail,
+  Send,
+  UserCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -52,6 +57,43 @@ function cn(...inputs: ClassValue[]) {
 import { PRODUCTS, CONTACT_INFO, TESTIMONIALS } from './constants';
 
 // --- Components ---
+
+const AnnouncementBar = () => {
+  return (
+    <div className="bg-brand-red text-white py-2 px-4 text-center overflow-hidden relative z-[150]">
+      <motion.div
+        animate={{ x: [1000, -1000] }}
+        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+        className="whitespace-nowrap text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-8"
+      >
+        <span>🔥 PROMO SPESIAL: DISKON 10% UNTUK PELANGGAN BARU! GUNAKAN KODE: VITA10</span>
+        <span>🌶️ VITA CABE: PEDASNYA NAMPOL, KUALITAS PREMIUM TANPA CAMPURAN!</span>
+        <span>🚚 GRATIS ONGKIR UNTUK WILAYAH TAMBORA & SEKITARNYA!</span>
+        <span>🔥 PROMO SPESIAL: DISKON 10% UNTUK PELANGGAN BARU! GUNAKAN KODE: VITA10</span>
+      </motion.div>
+    </div>
+  );
+};
+
+const FloatingWhatsApp = () => {
+  return (
+    <motion.a
+      href={`https://wa.me/${CONTACT_INFO.admin.phone}?text=Halo%20Admin%20VITA%20CABE%2C%20saya%20ingin%20konsultasi%20produk.`}
+      target="_blank"
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.9 }}
+      className="fixed bottom-8 right-8 z-[180] bg-brand-green text-white p-4 rounded-full shadow-2xl flex items-center justify-center group"
+    >
+      <div className="absolute right-full mr-4 bg-white text-brand-black px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity shadow-xl pointer-events-none">
+        Butuh Bantuan? Chat Kami!
+      </div>
+      <MessageCircle size={28} />
+      <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand-red rounded-full border-2 border-white animate-pulse" />
+    </motion.a>
+  );
+};
 
 const ToastContainer = ({ toasts, removeToast }: { toasts: Toast[], removeToast: (id: string) => void }) => {
   return (
@@ -1506,7 +1548,7 @@ const AdminDashboard = ({
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'finance' | 'stock'>('finance');
+  const [activeTab, setActiveTab] = useState<'finance' | 'stock' | 'customers'>('finance');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1528,6 +1570,46 @@ const AdminDashboard = ({
   const resellerOrders = orders.filter(order => order.items.some(item => item.category === 'Reseller' || item.category === 'Wholesale'));
   const resellerRevenue = resellerOrders.reduce((acc, order) => acc + order.total, 0);
   const retailRevenue = totalRevenue - resellerRevenue;
+
+  // Unique Customers
+  const customers = useMemo(() => {
+    const map = new Map();
+    orders.forEach(o => {
+      if (!map.has(o.phone)) {
+        map.set(o.phone, {
+          name: o.name,
+          phone: o.phone,
+          totalOrders: 1,
+          totalSpent: o.total,
+          lastOrder: o.date
+        });
+      } else {
+        const existing = map.get(o.phone);
+        map.set(o.phone, {
+          ...existing,
+          totalOrders: existing.totalOrders + 1,
+          totalSpent: existing.totalSpent + o.total,
+          lastOrder: o.date
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [orders]);
+
+  const exportData = () => {
+    const headers = ['ID', 'Tanggal', 'Nama', 'Total', 'Status'];
+    const rows = orders.map(o => [o.id, o.date, o.name, o.total, o.status]);
+    const csvContent = [headers, ...rows].map(e => e.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `laporan_vitacabe_${new Date().toLocaleDateString()}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   // Chart Data
   const chartData = useMemo(() => {
@@ -1588,13 +1670,13 @@ const AdminDashboard = ({
       <div className="flex flex-col md:flex-row justify-between items-end gap-8">
         <div className="space-y-2">
           <h1 className="text-4xl font-black tracking-tight">Admin Dashboard</h1>
-          <p className="text-gray-500">Kelola keuangan dan stok VITA CABE.</p>
+          <p className="text-gray-500">Kelola keuangan, stok, dan pelanggan VITA CABE.</p>
         </div>
-        <div className="flex bg-brand-gray p-1 rounded-2xl border border-white/5">
+        <div className="flex flex-wrap bg-brand-gray p-1 rounded-2xl border border-white/5">
           <button 
             onClick={() => setActiveTab('finance')}
             className={cn(
-              "px-6 py-2 rounded-xl font-bold text-xs transition-all",
+              "px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all",
               activeTab === 'finance' ? 'bg-brand-red text-white shadow-lg' : 'text-gray-500 hover:text-white'
             )}
           >
@@ -1603,18 +1685,36 @@ const AdminDashboard = ({
           <button 
             onClick={() => setActiveTab('stock')}
             className={cn(
-              "px-6 py-2 rounded-xl font-bold text-xs transition-all",
+              "px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all",
               activeTab === 'stock' ? 'bg-brand-red text-white shadow-lg' : 'text-gray-500 hover:text-white'
             )}
           >
-            Manajemen Stok
+            Stok
           </button>
-          <button onClick={() => setIsAuthenticated(false)} className="px-6 py-2 text-xs font-bold text-gray-500 hover:text-brand-red uppercase tracking-widest">Logout</button>
+          <button 
+            onClick={() => setActiveTab('customers')}
+            className={cn(
+              "px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all",
+              activeTab === 'customers' ? 'bg-brand-red text-white shadow-lg' : 'text-gray-500 hover:text-white'
+            )}
+          >
+            Pelanggan
+          </button>
+          <button onClick={() => setIsAuthenticated(false)} className="px-4 py-2 text-[10px] font-bold text-gray-500 hover:text-brand-red uppercase tracking-widest">Logout</button>
         </div>
       </div>
 
-      {activeTab === 'finance' ? (
+      {activeTab === 'finance' && (
         <div className="space-y-12">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-black">Ringkasan Keuangan</h2>
+            <button 
+              onClick={exportData}
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl text-xs font-bold hover:bg-white/10 transition-colors"
+            >
+              <Download size={14} /> Export CSV
+            </button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="card bg-brand-gray border-white/5 p-8 space-y-4">
               <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Total Pendapatan</div>
@@ -1733,7 +1833,9 @@ const AdminDashboard = ({
             </div>
           </div>
         </div>
-      ) : (
+      )}
+
+      {activeTab === 'stock' && (
         <div className="space-y-8">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-black">Stok Produk</h2>
@@ -1795,6 +1897,52 @@ const AdminDashboard = ({
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'customers' && (
+        <div className="space-y-8">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-black">Daftar Pelanggan</h2>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Total Pelanggan: {customers.length}</div>
+          </div>
+          <div className="bg-brand-dark border border-white/5 rounded-[2rem] overflow-hidden overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead>
+                <tr className="bg-white/5 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                  <th className="p-6">Nama Pelanggan</th>
+                  <th className="p-6">Kontak</th>
+                  <th className="p-6">Total Pesanan</th>
+                  <th className="p-6">Total Belanja</th>
+                  <th className="p-6">Pesanan Terakhir</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {customers.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="p-12 text-center text-gray-500 italic">Belum ada data pelanggan</td>
+                  </tr>
+                ) : (
+                  customers.map((customer, i) => (
+                    <tr key={i} className="hover:bg-white/5 transition-colors">
+                      <td className="p-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-brand-red/20 rounded-full flex items-center justify-center text-[10px] font-black text-brand-red">
+                            {customer.name.charAt(0)}
+                          </div>
+                          <div className="text-sm font-bold text-white">{customer.name}</div>
+                        </div>
+                      </td>
+                      <td className="p-6 text-sm text-gray-400">{customer.phone}</td>
+                      <td className="p-6 text-sm font-bold">{customer.totalOrders}x</td>
+                      <td className="p-6 text-sm font-black text-brand-green">Rp {customer.totalSpent.toLocaleString('id-ID')}</td>
+                      <td className="p-6 text-xs text-gray-500">{customer.lastOrder}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -1942,6 +2090,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-black">
+      <AnnouncementBar />
       <Navbar 
         currentPage={page} 
         setPage={setPage} 
@@ -1950,6 +2099,7 @@ export default function App() {
       />
 
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+      <FloatingWhatsApp />
 
       <main className="flex-grow">
         <AnimatePresence mode="wait">
@@ -2023,71 +2173,93 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      <footer className="bg-brand-black text-white py-16 px-4 border-t border-white/5">
-        <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-12">
-          <div className="space-y-6">
-            <div className="flex items-center cursor-pointer" onClick={() => setPage('home')}>
-              <span className="text-2xl font-black tracking-tighter text-brand-red">VITA</span>
-              <span className="text-2xl font-black tracking-tighter text-white">CABE</span>
-            </div>
-            <p className="text-gray-400 text-sm">
-              Bubuk cabe premium tanpa campuran tepung, warna merah alami, kualitas pedas maksimal.
-            </p>
-            <div className="flex gap-4">
-              <a 
-                href={`https://wa.me/${CONTACT_INFO.admin.phone}?text=Salam%20hangat%20dari%20pecinta%20pedas.%20Saya%20ingin%20membawa%20pulang%20sensasi%20%27Pedasnya%20Nampol%27%20dari%20VITA%20CABE%20ke%20dapur%20saya.%20Bagaimana%20caranya%3F`}
-                target="_blank"
-                className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-brand-red transition-colors cursor-pointer"
-              >
-                <MessageCircle size={20} />
-              </a>
-              <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-brand-red transition-colors cursor-pointer">
-                <Users size={20} />
+      <footer className="bg-brand-black text-white py-24 px-4 border-t border-white/5">
+        <div className="max-w-7xl mx-auto space-y-24">
+          {/* Newsletter Section */}
+          <div className="grid lg:grid-cols-2 gap-12 items-center bg-brand-dark p-12 rounded-[3rem] border border-white/5 shadow-2xl">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 text-brand-red font-black text-xs uppercase tracking-widest">
+                <Mail size={14} /> Newsletter
               </div>
+              <h3 className="text-3xl font-black">Dapatkan Info Promo Terbaru!</h3>
+              <p className="text-gray-400">Berlangganan newsletter kami untuk mendapatkan update produk dan promo eksklusif langsung di WhatsApp Anda.</p>
             </div>
-          </div>
-          
-          <div className="space-y-6">
-            <h4 className="font-bold uppercase tracking-widest text-xs text-brand-green">Menu</h4>
-            <ul className="space-y-3 text-sm text-gray-400">
-              {['Beranda', 'Produk', 'Grosir', 'Tentang', 'Kontak'].map(item => (
-                <li key={item} className="hover:text-white cursor-pointer transition-colors" onClick={() => setPage(item === 'Beranda' ? 'home' : item.toLowerCase() as Page)}>{item}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="space-y-6">
-            <h4 className="font-bold uppercase tracking-widest text-xs text-brand-green">Customer Support</h4>
-            <ul className="space-y-4 text-sm text-gray-400">
-              <li className="flex items-start gap-3">
-                <MapPin size={18} className="text-brand-red flex-shrink-0" />
-                <span>Jl. Duri Selatan Ic, No. 1D, rt. 0010 rw. 001, Duri Selatan, Tambora, Kota Jakarta Barat, DKI Jakarta, Indonesia</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Phone size={18} className="text-brand-red flex-shrink-0" />
-                <span>0{CONTACT_INFO.founder.phone.substring(2)}</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Clock size={18} className="text-brand-red flex-shrink-0" />
-                <span>08.00 – 21.00 WIB</span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="space-y-6">
-            <h4 className="font-bold uppercase tracking-widest text-xs text-brand-green">Newsletter</h4>
-            <p className="text-xs text-gray-400">Dapatkan info promo terbaru langsung di WhatsApp Anda.</p>
-            <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); alert('Terima kasih! Kami akan mengirimkan info promo terbaru.'); }}>
-              <input type="tel" placeholder="No. WhatsApp" className="bg-white/5 border-none rounded-lg p-3 text-sm flex-grow focus:ring-1 focus:ring-brand-red" required />
-              <button type="submit" className="bg-brand-red p-3 rounded-lg hover:bg-red-700 transition-colors">
-                <ArrowRight size={18} />
+            <form className="flex flex-col sm:flex-row gap-4" onSubmit={(e) => { e.preventDefault(); addToast('Terima kasih! Kami akan mengirimkan info promo terbaru.', 'success'); }}>
+              <input 
+                type="tel" 
+                placeholder="No. WhatsApp Anda" 
+                required
+                className="flex-grow bg-brand-gray border-none rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-brand-red transition-all"
+              />
+              <button type="submit" className="btn-primary py-4 px-8 flex items-center justify-center gap-2">
+                Daftar <Send size={18} />
               </button>
             </form>
           </div>
-        </div>
-        <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-white/5 text-center text-xs text-gray-500 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p>© 2026 VITA CABE. All Rights Reserved. Founded by {CONTACT_INFO.founder.name}.</p>
-          <button onClick={() => setPage('admin')} className="hover:text-brand-red transition-colors">Admin Access</button>
+
+          <div className="grid md:grid-cols-4 gap-12">
+            <div className="space-y-6">
+              <div className="flex items-center cursor-pointer" onClick={() => setPage('home')}>
+                <span className="text-2xl font-black tracking-tighter text-brand-red">VITA</span>
+                <span className="text-2xl font-black tracking-tighter text-white">CABE</span>
+              </div>
+              <p className="text-gray-400 text-sm">
+                Bubuk cabe premium tanpa campuran tepung, warna merah alami, kualitas pedas maksimal.
+              </p>
+              <div className="flex gap-4">
+                <a 
+                  href={`https://wa.me/${CONTACT_INFO.admin.phone}?text=Salam%20hangat%20dari%20pecinta%20pedas.%20Saya%20ingin%20membawa%20pulang%20sensasi%20%27Pedasnya%20Nampol%27%20dari%20VITA%20CABE%20ke%20dapur%20saya.%20Bagaimana%20caranya%3F`}
+                  target="_blank"
+                  className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-brand-red transition-colors cursor-pointer"
+                >
+                  <MessageCircle size={20} />
+                </a>
+                <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-brand-red transition-colors cursor-pointer">
+                  <Users size={20} />
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-6">
+              <h4 className="font-bold uppercase tracking-widest text-xs text-brand-green">Menu</h4>
+              <ul className="space-y-3 text-sm text-gray-400">
+                {['Beranda', 'Produk', 'Grosir', 'Tentang', 'Kontak'].map(item => (
+                  <li key={item} className="hover:text-white cursor-pointer transition-colors" onClick={() => setPage(item === 'Beranda' ? 'home' : item.toLowerCase() as Page)}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="space-y-6">
+              <h4 className="font-bold uppercase tracking-widest text-xs text-brand-green">Customer Support</h4>
+              <ul className="space-y-4 text-sm text-gray-400">
+                <li className="flex items-start gap-3">
+                  <MapPin size={18} className="text-brand-red flex-shrink-0" />
+                  <span>Jl. Duri Selatan Ic, No. 1D, rt. 0010 rw. 001, Duri Selatan, Tambora, Kota Jakarta Barat, DKI Jakarta, Indonesia</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Phone size={18} className="text-brand-red flex-shrink-0" />
+                  <span>0{CONTACT_INFO.founder.phone.substring(2)}</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Clock size={18} className="text-brand-red flex-shrink-0" />
+                  <span>08.00 – 21.00 WIB</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="space-y-6">
+              <h4 className="font-bold uppercase tracking-widest text-xs text-brand-green">Admin Access</h4>
+              <button 
+                onClick={() => setPage('admin')}
+                className="flex items-center gap-2 text-sm text-gray-500 hover:text-brand-red transition-colors font-bold"
+              >
+                <ShieldCheck size={18} /> Admin Login
+              </button>
+              <div className="pt-4 border-t border-white/5">
+                <p className="text-[10px] text-gray-600 uppercase tracking-widest font-black">© 2026 VITA CABE. All Rights Reserved.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </footer>
 
