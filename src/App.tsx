@@ -38,7 +38,9 @@ import {
   UserCheck,
   Edit,
   Save,
-  Search
+  Search,
+  Instagram,
+  Facebook
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -53,11 +55,22 @@ import {
 } from 'recharts';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { Product, CartItem, Page, OrderData, Toast } from './types';
+import { Product, CartItem, Page, OrderData, Toast, SocialLink } from './types';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+const getSocialIcon = (platform: string) => {
+  switch (platform.toLowerCase()) {
+    case 'instagram': return <Instagram size={20} />;
+    case 'facebook': return <Facebook size={20} />;
+    case 'whatsapp': return <MessageCircle size={20} />;
+    case 'tiktok': return <Users size={20} />;
+    default: return <Share size={20} />;
+  }
+};
+
 import { PRODUCTS, CONTACT_INFO, TESTIMONIALS } from './constants';
 
 // --- Components ---
@@ -639,7 +652,8 @@ const HomePage = ({
   testimonials, 
   onViewDetail,
   onToggleWishlist,
-  wishlist
+  wishlist,
+  socialLinks
 }: { 
   setPage: (p: Page) => void, 
   onAddToCart: (p: Product) => void, 
@@ -648,7 +662,8 @@ const HomePage = ({
   testimonials: any[],
   onViewDetail: (p: Product) => void,
   onToggleWishlist: (id: string) => void,
-  wishlist: string[]
+  wishlist: string[],
+  socialLinks: SocialLink[]
 }) => {
   const featured = products.slice(0, 3);
 
@@ -817,9 +832,19 @@ const HomePage = ({
             <h2 className="text-3xl font-black tracking-tight">#VITA<span className="text-brand-red">CABE</span>Moment</h2>
             <p className="text-gray-500">Bagikan momen pedasmu bersama kami di media sosial.</p>
           </div>
-          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-brand-red font-bold flex items-center gap-1 hover:underline">
-            Follow Us <ChevronRight size={20} />
-          </a>
+          <div className="flex gap-4">
+            {socialLinks.map((social) => (
+              <a 
+                key={social.id}
+                href={social.url} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-brand-red font-bold flex items-center gap-1 hover:underline"
+              >
+                {social.platform} <ChevronRight size={20} />
+              </a>
+            ))}
+          </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
@@ -1624,7 +1649,9 @@ const AdminDashboard = ({
   onUpdateStock,
   onAddProduct,
   onDeleteProduct,
-  onUpdateProduct
+  onUpdateProduct,
+  socialLinks,
+  onUpdateSocials
 }: { 
   orders: OrderData[], 
   products: Product[],
@@ -1632,13 +1659,15 @@ const AdminDashboard = ({
   onUpdateStock: (id: string, newStock: number) => void,
   onAddProduct: (p: Product) => void,
   onDeleteProduct: (id: string) => void,
-  onUpdateProduct: (p: Product) => void
+  onUpdateProduct: (p: Product) => void,
+  socialLinks: SocialLink[],
+  onUpdateSocials: (links: SocialLink[]) => void
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'finance' | 'stock' | 'customers'>('finance');
+  const [activeTab, setActiveTab] = useState<'finance' | 'stock' | 'customers' | 'socials'>('finance');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
   const [orderSearch, setOrderSearch] = useState('');
@@ -1656,6 +1685,25 @@ const AdminDashboard = ({
     stock: 0,
     image: ''
   });
+
+  const [localSocials, setLocalSocials] = useState<SocialLink[]>(socialLinks);
+
+  const handleSaveSocials = (e: React.FormEvent) => {
+    e.preventDefault();
+    onUpdateSocials(localSocials);
+  };
+
+  const addSocialField = () => {
+    setLocalSocials([...localSocials, { id: Math.random().toString(36).substring(2, 9), platform: '', url: '' }]);
+  };
+
+  const removeSocialField = (id: string) => {
+    setLocalSocials(localSocials.filter(s => s.id !== id));
+  };
+
+  const updateSocialField = (id: string, field: 'platform' | 'url', value: string) => {
+    setLocalSocials(localSocials.map(s => s.id === id ? { ...s, [field]: value } : s));
+  };
 
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1881,6 +1929,15 @@ const AdminDashboard = ({
             )}
           >
             Pelanggan
+          </button>
+          <button 
+            onClick={() => setActiveTab('socials')}
+            className={cn(
+              "px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all",
+              activeTab === 'socials' ? 'bg-brand-red text-white shadow-lg' : 'text-gray-500 hover:text-white'
+            )}
+          >
+            Media Sosial
           </button>
           <button onClick={() => setIsAuthenticated(false)} className="px-4 py-2 text-[10px] font-bold text-gray-500 hover:text-brand-red uppercase tracking-widest">Logout</button>
         </div>
@@ -2344,6 +2401,63 @@ const AdminDashboard = ({
           </div>
         </div>
       )}
+
+      {activeTab === 'socials' && (
+        <div className="space-y-8">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-black">Manajemen Media Sosial</h2>
+            <button 
+              onClick={addSocialField}
+              className="btn-primary py-2 px-6 text-xs flex items-center gap-2"
+            >
+              <Plus size={14} /> Tambah Platform
+            </button>
+          </div>
+          <div className="card bg-brand-dark border-white/10 p-8">
+            <form onSubmit={handleSaveSocials} className="space-y-6">
+              {localSocials.map((social) => (
+                <div key={social.id} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-gray-400">Platform (e.g. Instagram)</label>
+                    <input 
+                      required
+                      type="text" 
+                      className="w-full bg-brand-gray border-none rounded-xl p-3 text-sm"
+                      value={social.platform}
+                      onChange={e => updateSocialField(social.id, 'platform', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-1">
+                    <label className="text-xs font-bold uppercase tracking-widest text-gray-400">URL Link</label>
+                    <input 
+                      required
+                      type="url" 
+                      className="w-full bg-brand-gray border-none rounded-xl p-3 text-sm"
+                      value={social.url}
+                      onChange={e => updateSocialField(social.id, 'url', e.target.value)}
+                    />
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => removeSocialField(social.id)}
+                    className="p-3 bg-brand-red/10 text-brand-red rounded-xl hover:bg-brand-red hover:text-white transition-all w-fit"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              ))}
+              {localSocials.length === 0 && (
+                <p className="text-gray-500 text-sm italic py-4">Belum ada link media sosial.</p>
+              )}
+              <div className="pt-6 border-t border-white/5">
+                <button type="submit" className="btn-primary py-4 px-12 flex items-center gap-2">
+                  <Save size={18} /> Simpan Semua Perubahan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -2370,11 +2484,20 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>(() => {
+    const saved = localStorage.getItem('vitacabe_socials');
+    return saved ? JSON.parse(saved) : CONTACT_INFO.socials;
+  });
 
   // Persist Products (Stock)
   useEffect(() => {
     localStorage.setItem('vitacabe_products', JSON.stringify(products));
   }, [products]);
+
+  // Persist Social Links
+  useEffect(() => {
+    localStorage.setItem('vitacabe_socials', JSON.stringify(socialLinks));
+  }, [socialLinks]);
 
   // Persist Wishlist
   useEffect(() => {
@@ -2511,6 +2634,11 @@ export default function App() {
     addToast('Produk diperbarui', 'success');
   };
 
+  const updateSocialLinks = (links: SocialLink[]) => {
+    setSocialLinks(links);
+    addToast('Link media sosial diperbarui', 'success');
+  };
+
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
@@ -2544,6 +2672,7 @@ export default function App() {
                 onViewDetail={setSelectedProduct}
                 onToggleWishlist={toggleWishlist}
                 wishlist={wishlist}
+                socialLinks={socialLinks}
               />
             )}
             {page === 'products' && (
@@ -2578,6 +2707,8 @@ export default function App() {
                 onAddProduct={addProduct}
                 onDeleteProduct={deleteProduct}
                 onUpdateProduct={updateProduct}
+                socialLinks={socialLinks}
+                onUpdateSocials={updateSocialLinks}
               />
             )}
             {page === 'checkout' && <CheckoutPage items={cart} onOrderSuccess={handleOrderSuccess} />}
@@ -2626,9 +2757,18 @@ export default function App() {
                 >
                   <MessageCircle size={20} />
                 </a>
-                <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-brand-red transition-colors cursor-pointer">
-                  <Users size={20} />
-                </div>
+                {socialLinks.map((social) => (
+                  <a 
+                    key={social.id}
+                    href={social.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-brand-red transition-colors cursor-pointer"
+                    title={social.platform}
+                  >
+                    {getSocialIcon(social.platform)}
+                  </a>
+                ))}
               </div>
             </div>
             

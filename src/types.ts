@@ -48,3 +48,9 @@ export interface Toast {
   message: string;
   type: 'success' | 'error' | 'info';
 }
+
+export interface SocialLink {
+  id: string;
+  platform: string;
+  url: string;
+}

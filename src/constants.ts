@@ -94,5 +94,8 @@ export const CONTACT_INFO = {
     name: 'Mandiri',
     accountName: 'SELVIA YOSEFIN',
     accountNumber: '1460014407410'
-  }
+  },
+  socials: [
+    { id: '1', platform: 'Instagram', url: 'https://www.instagram.com/vitacabe00?igsh=NXc0NDNweGZ6azQ' }
+  ]
 };
