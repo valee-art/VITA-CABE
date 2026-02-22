@@ -90,6 +90,7 @@ export const CONTACT_INFO = {
     name: 'VALE',
     phone: '628194068927'
   },
+  email: 'Vitacabe89@gmail.com',
   bank: {
     name: 'Mandiri',
     accountName: 'SELVIA YOSEFIN',

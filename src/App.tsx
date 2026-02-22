@@ -1287,7 +1287,7 @@ const ContactPage = () => {
         <p className="text-gray-500">Punya pertanyaan? Tim kami siap membantu Anda.</p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-8">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
         <div className="card text-center space-y-6 p-10">
           <div className="w-16 h-16 bg-brand-red/10 rounded-2xl flex items-center justify-center mx-auto text-brand-red">
             <Phone size={32} />
@@ -1332,6 +1332,17 @@ const ContactPage = () => {
             <h3 className="font-bold text-lg">JAM OPERASIONAL</h3>
             <p className="text-gray-500">Setiap Hari</p>
             <p className="font-black">08.00 – 21.00 WIB</p>
+          </div>
+        </div>
+
+        <div className="card text-center space-y-6 p-10">
+          <div className="w-16 h-16 bg-brand-red/10 rounded-2xl flex items-center justify-center mx-auto text-brand-red">
+            <Mail size={32} />
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-bold text-lg">EMAIL</h3>
+            <p className="text-gray-500">Kirim pertanyaan Anda ke</p>
+            <a href={`mailto:${CONTACT_INFO.email}`} className="font-black text-brand-red hover:underline">{CONTACT_INFO.email}</a>
           </div>
         </div>
       </div>
@@ -2795,6 +2806,10 @@ export default function App() {
                 <li className="flex items-center gap-3">
                   <Clock size={18} className="text-brand-red flex-shrink-0" />
                   <span>08.00 – 21.00 WIB</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Mail size={18} className="text-brand-red flex-shrink-0" />
+                  <a href={`mailto:${CONTACT_INFO.email}`} className="hover:text-white transition-colors">{CONTACT_INFO.email}</a>
                 </li>
               </ul>
             </div>
