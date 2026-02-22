@@ -22,6 +22,7 @@ import {
   Trash2,
   ArrowRight,
   ChevronRight,
+  ChevronDown,
   Package,
   Star,
   Share,
@@ -728,6 +729,61 @@ const HomePage = ({
         </div>
       </section>
 
+      {/* Featured Categories */}
+      <section className="px-4 max-w-7xl mx-auto">
+        <div className="text-center mb-16 space-y-4">
+          <h2 className="text-3xl md:text-4xl font-black tracking-tight">Pilih Kategori Belanja</h2>
+          <p className="text-gray-500">Sesuaikan dengan kebutuhan Anda, dari retail hingga grosir.</p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-8">
+          {[
+            { 
+              title: "Retail", 
+              desc: "Pembelian satuan untuk konsumsi rumah tangga.", 
+              icon: ShoppingBag,
+              color: "bg-brand-red",
+              image: "https://picsum.photos/seed/retail/600/400"
+            },
+            { 
+              title: "Wholesale", 
+              desc: "Pembelian dalam jumlah besar untuk stok dapur.", 
+              icon: Package,
+              color: "bg-brand-green",
+              image: "https://picsum.photos/seed/wholesale/600/400"
+            },
+            { 
+              title: "Reseller", 
+              desc: "Harga spesial untuk Anda yang ingin berbisnis.", 
+              icon: Users,
+              color: "bg-yellow-500",
+              image: "https://picsum.photos/seed/reseller/600/400"
+            }
+          ].map((cat, i) => (
+            <motion.div 
+              key={i}
+              whileHover={{ y: -10 }}
+              onClick={() => setPage(cat.title === 'Reseller' ? 'wholesale' : 'products')}
+              className="group cursor-pointer relative h-80 rounded-[2.5rem] overflow-hidden border border-white/5"
+            >
+              <img 
+                src={cat.image} 
+                alt={cat.title} 
+                className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-110 transition-transform duration-700"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-brand-black via-brand-black/40 to-transparent" />
+              <div className="absolute bottom-8 left-8 right-8 space-y-2">
+                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-white mb-4", cat.color)}>
+                  <cat.icon size={20} />
+                </div>
+                <h3 className="text-2xl font-black text-white">{cat.title}</h3>
+                <p className="text-sm text-gray-400">{cat.desc}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
       {/* Featured Products */}
       <section className="px-4 max-w-7xl mx-auto">
         <div className="flex justify-between items-end mb-12">
@@ -751,6 +807,62 @@ const HomePage = ({
               isWishlisted={wishlist.includes(product.id)}
             />
           ))}
+        </div>
+      </section>
+
+      {/* Social Feed */}
+      <section className="px-4 max-w-7xl mx-auto">
+        <div className="flex justify-between items-end mb-12">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-black tracking-tight">#VITA<span className="text-brand-red">CABE</span>Moment</h2>
+            <p className="text-gray-500">Bagikan momen pedasmu bersama kami di media sosial.</p>
+          </div>
+          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-brand-red font-bold flex items-center gap-1 hover:underline">
+            Follow Us <ChevronRight size={20} />
+          </a>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="aspect-square rounded-3xl overflow-hidden bg-brand-gray border border-white/5 group relative">
+              <img 
+                src={`https://picsum.photos/seed/spice${i}/600/600`} 
+                alt="Social Feed" 
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-brand-red/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Flame size={32} className="text-white" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="bg-brand-gray py-24 px-4">
+        <div className="max-w-3xl mx-auto space-y-12">
+          <div className="text-center space-y-4">
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight">Pertanyaan Umum</h2>
+            <p className="text-gray-500">Segala hal yang perlu Anda ketahui tentang VITA CABE.</p>
+          </div>
+          <div className="space-y-4">
+            {[
+              { q: "Apakah VITA CABE menggunakan pengawet?", a: "Tidak, VITA CABE 100% alami tanpa pengawet buatan. Kami menggunakan proses pengeringan alami untuk menjaga keawetan produk." },
+              { q: "Berapa lama masa simpan produk?", a: "Produk kami dapat bertahan hingga 6-12 bulan jika disimpan di tempat yang kering dan sejuk dalam wadah tertutup rapat." },
+              { q: "Apakah bisa kirim ke luar kota?", a: "Tentu! Kami melayani pengiriman ke seluruh Indonesia menggunakan jasa ekspedisi terpercaya." },
+              { q: "Bagaimana cara menjadi reseller?", a: "Anda dapat mendaftar melalui halaman 'Grosir' atau langsung menghubungi admin via WhatsApp yang tersedia." }
+            ].map((faq, i) => (
+              <details key={i} className="group bg-brand-dark rounded-2xl border border-white/5 overflow-hidden">
+                <summary className="flex justify-between items-center p-6 cursor-pointer list-none font-bold text-white hover:bg-white/5 transition-colors">
+                  {faq.q}
+                  <ChevronDown size={20} className="group-open:rotate-180 transition-transform text-brand-red" />
+                </summary>
+                <div className="p-6 pt-0 text-gray-400 text-sm leading-relaxed border-t border-white/5">
+                  {faq.a}
+                </div>
+              </details>
+            ))}
+          </div>
         </div>
       </section>
 
