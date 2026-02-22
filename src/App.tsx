@@ -1279,7 +1279,7 @@ const AboutPage = () => {
   );
 };
 
-const ContactPage = () => {
+const ContactPage = ({ socialLinks }: { socialLinks: SocialLink[] }) => {
   return (
     <div className="pt-32 pb-24 px-4 max-w-7xl mx-auto space-y-16">
       <div className="text-center space-y-4">
@@ -1296,13 +1296,29 @@ const ContactPage = () => {
             <h3 className="font-bold text-lg">FOUNDER</h3>
             <p className="text-gray-500">{CONTACT_INFO.founder.name}</p>
             <p className="text-xs text-gray-400 mb-2">0{CONTACT_INFO.founder.phone.substring(2)}</p>
-            <a 
-              href={`https://wa.me/${CONTACT_INFO.founder.phone}?text=Halo%20VITA%20CABE%2C%20saya%20ingin%20menjemput%20kehangatan%20rasa%20dalam%20setiap%20butiran%20pedasmu.%20Bolehkah%20saya%20memesan%20keajaiban%20merah%20ini%3F`}
-              target="_blank"
-              className="inline-flex items-center gap-2 bg-brand-green text-white px-6 py-2 rounded-full font-bold hover:bg-green-600 transition-colors"
-            >
-              <MessageCircle size={18} /> WhatsApp
-            </a>
+            <div className="flex flex-col gap-2">
+              <a 
+                href={`https://wa.me/${CONTACT_INFO.founder.phone}?text=Halo%20VITA%20CABE%2C%20saya%20ingin%20menjemput%20kehangatan%20rasa%20dalam%20setiap%20butiran%20pedasmu.%20Bolehkah%20saya%20memesan%20keajaiban%20merah%20ini%3F`}
+                target="_blank"
+                className="inline-flex items-center justify-center gap-2 bg-brand-green text-white px-6 py-2 rounded-full font-bold hover:bg-green-600 transition-colors text-sm"
+              >
+                <MessageCircle size={16} /> WhatsApp
+              </a>
+              <div className="flex justify-center gap-2 pt-2">
+                {socialLinks.map(social => (
+                  <a 
+                    key={social.id} 
+                    href={social.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="w-8 h-8 bg-brand-gray rounded-full flex items-center justify-center hover:bg-brand-red transition-colors"
+                    title={social.platform}
+                  >
+                    {getSocialIcon(social.platform)}
+                  </a>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1314,13 +1330,29 @@ const ContactPage = () => {
             <h3 className="font-bold text-lg">ADMIN</h3>
             <p className="text-gray-500">{CONTACT_INFO.admin.name}</p>
             <p className="text-xs text-gray-400 mb-2">0{CONTACT_INFO.admin.phone.substring(2)}</p>
-            <a 
-              href={`https://wa.me/${CONTACT_INFO.admin.phone}?text=Halo%20VITA%20CABE%2C%20saya%20ingin%20menjemput%20kehangatan%20rasa%20dalam%20setiap%20butiran%20pedasmu.%20Bolehkah%20saya%20memesan%20keajaiban%20merah%20ini%3F`}
-              target="_blank"
-              className="inline-flex items-center gap-2 bg-brand-green text-white px-6 py-2 rounded-full font-bold hover:bg-green-600 transition-colors"
-            >
-              <MessageCircle size={18} /> WhatsApp
-            </a>
+            <div className="flex flex-col gap-2">
+              <a 
+                href={`https://wa.me/${CONTACT_INFO.admin.phone}?text=Halo%20VITA%20CABE%2C%20saya%20ingin%20menjemput%20kehangatan%20rasa%20dalam%20setiap%20butiran%20pedasmu.%20Bolehkah%20saya%20memesan%20keajaiban%20merah%20ini%3F`}
+                target="_blank"
+                className="inline-flex items-center justify-center gap-2 bg-brand-green text-white px-6 py-2 rounded-full font-bold hover:bg-green-600 transition-colors text-sm"
+              >
+                <MessageCircle size={16} /> WhatsApp
+              </a>
+              <div className="flex justify-center gap-2 pt-2">
+                {socialLinks.map(social => (
+                  <a 
+                    key={social.id} 
+                    href={social.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="w-8 h-8 bg-brand-gray rounded-full flex items-center justify-center hover:bg-brand-red transition-colors"
+                    title={social.platform}
+                  >
+                    {getSocialIcon(social.platform)}
+                  </a>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2698,7 +2730,7 @@ export default function App() {
             )}
             {page === 'wholesale' && <WholesalePage />}
             {page === 'about' && <AboutPage />}
-            {page === 'contact' && <ContactPage />}
+            {page === 'contact' && <ContactPage socialLinks={socialLinks} />}
             {page === 'account' && (
               <AccountPage 
                 orders={orders} 
