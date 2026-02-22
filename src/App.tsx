@@ -36,7 +36,8 @@ import {
   Send,
   UserCheck,
   Edit,
-  Save
+  Save,
+  Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -1528,6 +1529,10 @@ const AdminDashboard = ({
   const [activeTab, setActiveTab] = useState<'finance' | 'stock' | 'customers'>('finance');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
+  const [orderSearch, setOrderSearch] = useState('');
+  const [orderFilter, setOrderFilter] = useState<string>('Semua');
+  const [stockSearch, setStockSearch] = useState('');
+  const [stockFilter, setStockFilter] = useState<string>('Semua');
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
     name: '',
     price: 0,
@@ -1594,6 +1599,47 @@ const AdminDashboard = ({
   const resellerOrders = orders.filter(order => order.items.some(item => item.category === 'Reseller' || item.category === 'Wholesale'));
   const resellerRevenue = resellerOrders.reduce((acc, order) => acc + order.total, 0);
   const retailRevenue = totalRevenue - resellerRevenue;
+  const avgOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
+
+  // Top Selling Products
+  const topProducts = useMemo(() => {
+    const productSales = new Map();
+    orders.forEach(order => {
+      order.items.forEach(item => {
+        const current = productSales.get(item.id) || { name: item.name, quantity: 0, revenue: 0 };
+        productSales.set(item.id, {
+          name: item.name,
+          quantity: current.quantity + item.quantity,
+          revenue: current.revenue + (item.price * item.quantity)
+        });
+      });
+    });
+    return Array.from(productSales.values())
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 5);
+  }, [orders]);
+
+  // Low Stock Count
+  const lowStockCount = products.filter(p => p.stock < 10).length;
+
+  // Filtered Orders
+  const filteredOrders = useMemo(() => {
+    return orders.filter(o => {
+      const matchesSearch = o.id.toLowerCase().includes(orderSearch.toLowerCase()) || 
+                           o.name.toLowerCase().includes(orderSearch.toLowerCase());
+      const matchesFilter = orderFilter === 'Semua' || o.status === orderFilter;
+      return matchesSearch && matchesFilter;
+    });
+  }, [orders, orderSearch, orderFilter]);
+
+  // Filtered Products
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(stockSearch.toLowerCase());
+      const matchesFilter = stockFilter === 'Semua' || p.category === stockFilter;
+      return matchesSearch && matchesFilter;
+    });
+  }, [products, stockSearch, stockFilter]);
 
   // Unique Customers
   const customers = useMemo(() => {
@@ -1739,65 +1785,122 @@ const AdminDashboard = ({
               <Download size={14} /> Export CSV
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="card bg-brand-gray border-white/5 p-8 space-y-4">
               <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Total Pendapatan</div>
               <div className="text-3xl font-black text-brand-red">Rp {totalRevenue.toLocaleString('id-ID')}</div>
               <div className="text-[10px] text-gray-400">Dari {orders.length} total pesanan</div>
             </div>
             <div className="card bg-brand-gray border-white/5 p-8 space-y-4">
-              <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Pendapatan Reseller/Grosir</div>
+              <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Rata-rata Pesanan (AOV)</div>
+              <div className="text-3xl font-black text-white">Rp {avgOrderValue.toLocaleString('id-ID')}</div>
+              <div className="text-[10px] text-gray-400">Nilai rata-rata per transaksi</div>
+            </div>
+            <div className="card bg-brand-gray border-white/5 p-8 space-y-4">
+              <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Pendapatan Grosir</div>
               <div className="text-3xl font-black text-brand-green">Rp {resellerRevenue.toLocaleString('id-ID')}</div>
               <div className="text-[10px] text-gray-400">{resellerOrders.length} pesanan skala besar</div>
             </div>
             <div className="card bg-brand-gray border-white/5 p-8 space-y-4">
-              <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Pendapatan Retail</div>
-              <div className="text-3xl font-black text-white">Rp {retailRevenue.toLocaleString('id-ID')}</div>
-              <div className="text-[10px] text-gray-400">Penjualan satuan langsung</div>
+              <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Stok Menipis</div>
+              <div className="text-3xl font-black text-yellow-500">{lowStockCount}</div>
+              <div className="text-[10px] text-gray-400">Produk dengan stok &lt; 10 pcs</div>
             </div>
           </div>
 
-          {/* Revenue Chart */}
-          <div className="card bg-brand-dark border border-white/5 p-8 space-y-6">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="text-brand-red" size={20} />
-              <h2 className="text-xl font-black">Tren Pendapatan (7 Hari Terakhir)</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Revenue Chart */}
+            <div className="lg:col-span-2 card bg-brand-dark border border-white/5 p-8 space-y-6">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="text-brand-red" size={20} />
+                <h2 className="text-xl font-black">Tren Pendapatan (7 Hari Terakhir)</h2>
+              </div>
+              <div className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke="#666" 
+                      fontSize={12} 
+                      tickLine={false} 
+                      axisLine={false} 
+                    />
+                    <YAxis 
+                      stroke="#666" 
+                      fontSize={12} 
+                      tickLine={false} 
+                      axisLine={false}
+                      tickFormatter={(value) => `Rp ${value/1000}k`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '12px' }}
+                      itemStyle={{ color: '#ff4d4d', fontWeight: 'bold' }}
+                      formatter={(value: number) => [`Rp ${value.toLocaleString('id-ID')}`, 'Pendapatan']}
+                    />
+                    <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={index === chartData.length - 1 ? '#ff4d4d' : '#333'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke="#666" 
-                    fontSize={12} 
-                    tickLine={false} 
-                    axisLine={false} 
-                  />
-                  <YAxis 
-                    stroke="#666" 
-                    fontSize={12} 
-                    tickLine={false} 
-                    axisLine={false}
-                    tickFormatter={(value) => `Rp ${value/1000}k`}
-                  />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '12px' }}
-                    itemStyle={{ color: '#ff4d4d', fontWeight: 'bold' }}
-                    formatter={(value: number) => [`Rp ${value.toLocaleString('id-ID')}`, 'Pendapatan']}
-                  />
-                  <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={index === chartData.length - 1 ? '#ff4d4d' : '#333'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+
+            {/* Top Products */}
+            <div className="card bg-brand-dark border border-white/5 p-8 space-y-6">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="text-brand-green" size={20} />
+                <h2 className="text-xl font-black">Produk Terlaris</h2>
+              </div>
+              <div className="space-y-6">
+                {topProducts.length === 0 ? (
+                  <p className="text-gray-500 text-sm italic">Belum ada data penjualan</p>
+                ) : (
+                  topProducts.map((p, i) => (
+                    <div key={i} className="flex justify-between items-center group">
+                      <div className="space-y-1">
+                        <div className="text-sm font-bold text-white group-hover:text-brand-red transition-colors">{p.name}</div>
+                        <div className="text-[10px] text-gray-500 uppercase tracking-widest">{p.quantity} terjual</div>
+                      </div>
+                      <div className="text-sm font-black text-brand-red">
+                        Rp {p.revenue.toLocaleString('id-ID')}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
 
           <div className="space-y-8">
-            <h2 className="text-2xl font-black">Transaksi Terbaru</h2>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <h2 className="text-2xl font-black">Transaksi Terbaru</h2>
+              <div className="flex flex-wrap gap-4 w-full md:w-auto">
+                <div className="relative flex-grow md:flex-grow-0">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
+                  <input 
+                    type="text" 
+                    placeholder="Cari ID atau Nama..." 
+                    className="w-full md:w-64 bg-brand-gray border-none rounded-xl pl-10 pr-4 py-2 text-xs focus:ring-1 focus:ring-brand-red"
+                    value={orderSearch}
+                    onChange={e => setOrderSearch(e.target.value)}
+                  />
+                </div>
+                <select 
+                  className="bg-brand-gray border-none rounded-xl px-4 py-2 text-xs font-bold focus:ring-1 focus:ring-brand-red"
+                  value={orderFilter}
+                  onChange={e => setOrderFilter(e.target.value)}
+                >
+                  <option>Semua</option>
+                  <option>Menunggu Pembayaran</option>
+                  <option>Diproses</option>
+                  <option>Dikirim</option>
+                  <option>Selesai</option>
+                </select>
+              </div>
+            </div>
             <div className="bg-brand-dark border border-white/5 rounded-[2rem] overflow-hidden overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead>
@@ -1811,12 +1914,12 @@ const AdminDashboard = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {orders.length === 0 ? (
+                  {filteredOrders.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="p-12 text-center text-gray-500 italic">Belum ada data transaksi</td>
+                      <td colSpan={6} className="p-12 text-center text-gray-500 italic">Tidak ada transaksi ditemukan</td>
                     </tr>
                   ) : (
-                    orders.map(order => (
+                    filteredOrders.map(order => (
                       <tr key={order.id} className="hover:bg-white/5 transition-colors">
                         <td className="p-6 font-bold text-sm">{order.id}</td>
                         <td className="p-6">
@@ -1861,15 +1964,37 @@ const AdminDashboard = ({
 
       {activeTab === 'stock' && (
         <div className="space-y-8">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <h2 className="text-2xl font-black">Stok Produk</h2>
-            <button 
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="btn-primary py-2 px-6 text-xs flex items-center gap-2"
-            >
-              {showAddForm ? <X size={14} /> : <Plus size={14} />}
-              {showAddForm ? 'Batal' : 'Tambah Produk'}
-            </button>
+            <div className="flex flex-wrap gap-4 w-full md:w-auto">
+              <div className="relative flex-grow md:flex-grow-0">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
+                <input 
+                  type="text" 
+                  placeholder="Cari Produk..." 
+                  className="w-full md:w-64 bg-brand-gray border-none rounded-xl pl-10 pr-4 py-2 text-xs focus:ring-1 focus:ring-brand-red"
+                  value={stockSearch}
+                  onChange={e => setStockSearch(e.target.value)}
+                />
+              </div>
+              <select 
+                className="bg-brand-gray border-none rounded-xl px-4 py-2 text-xs font-bold focus:ring-1 focus:ring-brand-red"
+                value={stockFilter}
+                onChange={e => setStockFilter(e.target.value)}
+              >
+                <option>Semua</option>
+                <option>Retail</option>
+                <option>Wholesale</option>
+                <option>Reseller</option>
+              </select>
+              <button 
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="btn-primary py-2 px-6 text-xs flex items-center gap-2"
+              >
+                {showAddForm ? <X size={14} /> : <Plus size={14} />}
+                {showAddForm ? 'Batal' : 'Tambah Produk'}
+              </button>
+            </div>
           </div>
 
           <AnimatePresence>
@@ -1988,7 +2113,12 @@ const AdminDashboard = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {products.map(product => (
+                {filteredProducts.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="p-12 text-center text-gray-500 italic">Tidak ada produk ditemukan</td>
+                  </tr>
+                ) : (
+                  filteredProducts.map(product => (
                   <tr key={product.id} className="hover:bg-white/5 transition-colors">
                     <td className="p-6">
                       <div className="text-sm font-bold text-white">{product.name}</div>
@@ -2049,12 +2179,13 @@ const AdminDashboard = ({
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
+    )}
 
       {activeTab === 'customers' && (
         <div className="space-y-8">
