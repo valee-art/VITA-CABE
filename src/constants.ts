@@ -97,6 +97,7 @@ export const CONTACT_INFO = {
     accountNumber: '1460014407410'
   },
   socials: [
-    { id: '1', platform: 'Instagram', url: 'https://www.instagram.com/vitacabe00?igsh=NXc0NDNweGZ6azQ' }
+    { id: '1', platform: 'Instagram', url: 'https://www.instagram.com/vitacabe00?igsh=NXc0NDNweGZ6azQ' },
+    { id: '2', platform: 'Facebook', url: 'https://www.facebook.com/share/1CB7ZFLh9d/' }
   ]
 };
