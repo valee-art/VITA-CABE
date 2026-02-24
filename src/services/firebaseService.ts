@@ -8,38 +8,49 @@ export const getFinanceData = async () => {
 
   try {
     const keuanganRef = collection(db, 'keuangan');
-    // Try to get all docs, sorting might fail if index is not ready
+    // Ambil semua dokumen tanpa sorting di awal untuk menghindari error Index Firebase
     const querySnapshot = await getDocs(keuanganRef);
     
     let totalNominal = 0;
     const data: any[] = [];
 
+    if (querySnapshot.empty) {
+      console.warn('Koleksi "keuangan" ditemukan tetapi tidak ada dokumen di dalamnya.');
+      return { totalNominal: 0, entries: [], docCount: 0 };
+    }
+
     querySnapshot.forEach((doc) => {
       const docData = doc.data();
-      const nominal = Number(docData.nominal) || 0;
-      const jenis = docData.jenis?.toLowerCase() || 'pemasukan';
+      
+      // Cari field nominal (cek variasi huruf besar/kecil: nominal, Nominal, NOMINAL)
+      const rawNominal = docData.nominal ?? docData.Nominal ?? docData.NOMINAL ?? 0;
+      const nominal = Number(rawNominal) || 0;
+      
+      // Cari field jenis (cek variasi: jenis, Jenis, JENIS)
+      const rawJenis = docData.jenis ?? docData.Jenis ?? docData.JENIS ?? 'pemasukan';
+      const jenis = String(rawJenis).toLowerCase();
 
-      // If it's an expense (pengeluaran), we subtract it. 
-      // Otherwise, we assume it's income (pemasukan).
-      if (jenis === 'pengeluaran' || jenis === 'keluar') {
+      // Logika Pemasukan vs Pengeluaran
+      if (jenis === 'pengeluaran' || jenis === 'keluar' || jenis === 'expense') {
         totalNominal -= nominal;
       } else {
         totalNominal += nominal;
       }
 
-      data.push({ id: doc.id, ...docData, nominal });
+      data.push({ id: doc.id, ...docData, nominal, jenis });
     });
 
-    // Sort manually by date if 'tanggal' exists, to avoid index errors in Firebase
+    // Urutkan secara manual berdasarkan tanggal (jika ada field tanggal/date)
     data.sort((a, b) => {
-      const dateA = a.tanggal?.seconds || 0;
-      const dateB = b.tanggal?.seconds || 0;
+      const dateA = a.tanggal?.seconds || a.date?.seconds || 0;
+      const dateB = b.tanggal?.seconds || b.date?.seconds || 0;
       return dateB - dateA;
     });
 
     return {
       totalNominal,
-      entries: data
+      entries: data,
+      docCount: querySnapshot.size
     };
   } catch (error) {
     console.error('Error fetching finance data from Firebase:', error);

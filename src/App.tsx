@@ -1739,7 +1739,7 @@ const AdminDashboard = ({
   });
 
   const [localSocials, setLocalSocials] = useState<SocialLink[]>(socialLinks);
-  const [firebaseFinance, setFirebaseFinance] = useState<{ totalNominal: number, entries: any[] } | null>(null);
+  const [firebaseFinance, setFirebaseFinance] = useState<{ totalNominal: number, entries: any[], docCount: number } | null>(null);
   const [isFetchingFirebase, setIsFetchingFirebase] = useState(false);
 
   useEffect(() => {
@@ -2019,6 +2019,7 @@ const AdminDashboard = ({
               <div className="space-y-1">
                 <div className="text-xs font-bold text-brand-red uppercase tracking-widest">Data Firebase (vitacabe-5f0a6)</div>
                 <div className="text-2xl font-black text-white">Total Nominal: Rp {firebaseFinance.totalNominal.toLocaleString('id-ID')}</div>
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Ditemukan {firebaseFinance.docCount} dokumen di koleksi "keuangan"</div>
               </div>
               <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
                 {isFetchingFirebase ? 'Syncing...' : 'Connected to Cloud'}
