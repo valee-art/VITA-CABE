@@ -1693,6 +1693,8 @@ const AccountPage = ({
   );
 };
 
+import { getFinanceData, getProducts, saveProduct, removeProduct, getOrders, saveOrder, updateOrderStatusFirebase } from './services/firebaseService';
+
 const AdminDashboard = ({ 
   orders, 
   products,
@@ -1738,6 +1740,20 @@ const AdminDashboard = ({
   });
 
   const [localSocials, setLocalSocials] = useState<SocialLink[]>(socialLinks);
+  const [firebaseFinance, setFirebaseFinance] = useState<{ totalNominal: number, entries: any[] } | null>(null);
+  const [isFetchingFirebase, setIsFetchingFirebase] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && activeTab === 'finance') {
+      const fetchFirebaseData = async () => {
+        setIsFetchingFirebase(true);
+        const data = await getFinanceData();
+        if (data) setFirebaseFinance(data);
+        setIsFetchingFirebase(false);
+      };
+      fetchFirebaseData();
+    }
+  }, [isAuthenticated, activeTab]);
 
   useEffect(() => {
     setLocalSocials(socialLinks);
@@ -1999,6 +2015,17 @@ const AdminDashboard = ({
 
       {activeTab === 'finance' && (
         <div className="space-y-12">
+          {firebaseFinance && (
+            <div className="bg-brand-red/10 border border-brand-red/20 p-6 rounded-2xl flex items-center justify-between">
+              <div className="space-y-1">
+                <div className="text-xs font-bold text-brand-red uppercase tracking-widest">Data Firebase (vitacabe-5f0a6)</div>
+                <div className="text-2xl font-black text-white">Total Nominal: Rp {firebaseFinance.totalNominal.toLocaleString('id-ID')}</div>
+              </div>
+              <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                {isFetchingFirebase ? 'Syncing...' : 'Connected to Cloud'}
+              </div>
+            </div>
+          )}
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-black">Ringkasan Keuangan</h2>
             <button 
@@ -2563,6 +2590,25 @@ export default function App() {
     localStorage.setItem('vitacabe_orders', JSON.stringify(orders));
   }, [orders]);
 
+  // Firebase Sync
+  useEffect(() => {
+    const syncFirebase = async () => {
+      const fbProducts = await getProducts();
+      if (fbProducts && fbProducts.length > 0) {
+        setProducts(fbProducts);
+      } else if (fbProducts && fbProducts.length === 0) {
+        // Initial migration: if Firebase is empty, upload current products
+        products.forEach(p => saveProduct(p));
+      }
+
+      const fbOrders = await getOrders();
+      if (fbOrders) {
+        setOrders(fbOrders);
+      }
+    };
+    syncFirebase();
+  }, []);
+
   const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts(prev => [...prev, { id, message, type }]);
@@ -2640,15 +2686,21 @@ export default function App() {
 
   const handleOrderSuccess = (order: OrderData) => {
     setOrders(prev => [order, ...prev]);
+    saveOrder(order); // Sync to Firebase
     
     // Decrease stock automatically
-    setProducts(prev => prev.map(p => {
-      const orderItem = order.items.find(item => item.id === p.id);
-      if (orderItem) {
-        return { ...p, stock: Math.max(0, p.stock - orderItem.quantity) };
-      }
-      return p;
-    }));
+    setProducts(prev => {
+      const updated = prev.map(p => {
+        const orderItem = order.items.find(item => item.id === p.id);
+        if (orderItem) {
+          const newProduct = { ...p, stock: Math.max(0, p.stock - orderItem.quantity) };
+          saveProduct(newProduct); // Sync to Firebase
+          return newProduct;
+        }
+        return p;
+      });
+      return updated;
+    });
 
     setCart([]);
     addToast('Pesanan berhasil dibuat!', 'success');
@@ -2659,24 +2711,32 @@ export default function App() {
     setOrders(prev => prev.map(order => 
       order.id === id ? { ...order, status } : order
     ));
+    updateOrderStatusFirebase(id, status); // Sync to Firebase
     addToast(`Status pesanan ${id} diperbarui`, 'success');
   };
 
   const updateProductStock = (id: string, newStock: number) => {
-    setProducts(prev => prev.map(p => 
-      p.id === id ? { ...p, stock: newStock } : p
-    ));
+    setProducts(prev => {
+      const updated = prev.map(p => 
+        p.id === id ? { ...p, stock: newStock } : p
+      );
+      const product = updated.find(p => p.id === id);
+      if (product) saveProduct(product); // Sync to Firebase
+      return updated;
+    });
     addToast(`Stok produk diperbarui`, 'success');
   };
 
   const addProduct = (newProduct: Product) => {
     setProducts(prev => [...prev, newProduct]);
+    saveProduct(newProduct); // Sync to Firebase
     addToast('Produk baru ditambahkan', 'success');
   };
 
   const deleteProduct = (id: string) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
       setProducts(prev => prev.filter(p => p.id !== id));
+      removeProduct(id); // Sync to Firebase
       addToast('Produk dihapus', 'info');
     }
   };
@@ -2685,6 +2745,7 @@ export default function App() {
     setProducts(prev => prev.map(p => 
       p.id === updatedProduct.id ? updatedProduct : p
     ));
+    saveProduct(updatedProduct); // Sync to Firebase
     addToast('Produk diperbarui', 'success');
   };
 
