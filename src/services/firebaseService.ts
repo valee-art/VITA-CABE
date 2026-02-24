@@ -8,16 +8,33 @@ export const getFinanceData = async () => {
 
   try {
     const keuanganRef = collection(db, 'keuangan');
-    const q = query(keuanganRef, orderBy('tanggal', 'desc'));
-    const querySnapshot = await getDocs(q);
+    // Try to get all docs, sorting might fail if index is not ready
+    const querySnapshot = await getDocs(keuanganRef);
     
     let totalNominal = 0;
     const data: any[] = [];
 
     querySnapshot.forEach((doc) => {
       const docData = doc.data();
-      totalNominal += docData.nominal || 0;
-      data.push({ id: doc.id, ...docData });
+      const nominal = Number(docData.nominal) || 0;
+      const jenis = docData.jenis?.toLowerCase() || 'pemasukan';
+
+      // If it's an expense (pengeluaran), we subtract it. 
+      // Otherwise, we assume it's income (pemasukan).
+      if (jenis === 'pengeluaran' || jenis === 'keluar') {
+        totalNominal -= nominal;
+      } else {
+        totalNominal += nominal;
+      }
+
+      data.push({ id: doc.id, ...docData, nominal });
+    });
+
+    // Sort manually by date if 'tanggal' exists, to avoid index errors in Firebase
+    data.sort((a, b) => {
+      const dateA = a.tanggal?.seconds || 0;
+      const dateB = b.tanggal?.seconds || 0;
+      return dateB - dateA;
     });
 
     return {

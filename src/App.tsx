@@ -72,6 +72,7 @@ const getSocialIcon = (platform: string) => {
 };
 
 import { PRODUCTS, CONTACT_INFO, TESTIMONIALS } from './constants';
+import { getFinanceData, getProducts, saveProduct, removeProduct, getOrders, saveOrder, updateOrderStatusFirebase } from './services/firebaseService';
 
 // --- Components ---
 
@@ -1692,8 +1693,6 @@ const AccountPage = ({
     </div>
   );
 };
-
-import { getFinanceData, getProducts, saveProduct, removeProduct, getOrders, saveOrder, updateOrderStatusFirebase } from './services/firebaseService';
 
 const AdminDashboard = ({ 
   orders, 
