@@ -73,6 +73,19 @@ export const PRODUCTS: Product[] = [
     category: 'Reseller',
     stock: 10,
     rating: 5.0
+  },
+  {
+    id: '6',
+    name: 'VITA CABE REMPAH',
+    price: 0,
+    level: 4,
+    size: '100ml',
+    minOrder: 1,
+    description: 'Varian terbaru dengan perpaduan rempah pilihan. Segera hadir untuk melengkapi hidangan Anda!',
+    category: 'Retail',
+    stock: 0,
+    isComingSoon: true,
+    rating: 0
   }
 ];
 

@@ -266,9 +266,14 @@ const ProductCard = ({
             <TrendingUp size={10} /> Best Seller
           </div>
         )}
-        {product.stock < 20 && (
+        {product.stock < 20 && !product.isComingSoon && (
           <div className="bg-brand-green text-white text-[10px] font-black px-2 py-1 rounded-md shadow-lg uppercase tracking-widest flex items-center gap-1">
             <AlertCircle size={10} /> Stok Terbatas
+          </div>
+        )}
+        {product.isComingSoon && (
+          <div className="bg-brand-black text-white text-[10px] font-black px-2 py-1 rounded-md shadow-lg uppercase tracking-widest flex items-center gap-1">
+            <Clock size={10} /> Coming Soon
           </div>
         )}
       </div>
@@ -320,9 +325,9 @@ const ProductCard = ({
       
       <div className="mb-4">
         <div className="text-brand-red font-black text-xl">
-          Rp {product.price.toLocaleString('id-ID')}
+          {product.isComingSoon ? 'Coming Soon' : `Rp ${product.price.toLocaleString('id-ID')}`}
         </div>
-        {product.wholesalePrice && (
+        {product.wholesalePrice && !product.isComingSoon && (
           <div className="text-brand-green text-xs font-bold">
             Grosir: Rp {product.wholesalePrice.toLocaleString('id-ID')}/pcs
           </div>
@@ -331,14 +336,22 @@ const ProductCard = ({
 
       <div className="grid grid-cols-2 gap-2">
         <button 
+          disabled={product.isComingSoon}
           onClick={() => onAddToCart(product)}
-          className="px-3 py-2 border border-white/10 rounded-lg text-xs font-bold text-white hover:bg-white/5 transition-colors"
+          className={cn(
+            "px-3 py-2 border border-white/10 rounded-lg text-xs font-bold text-white transition-colors",
+            product.isComingSoon ? "opacity-20 cursor-not-allowed" : "hover:bg-white/5"
+          )}
         >
           + Keranjang
         </button>
         <button 
+          disabled={product.isComingSoon}
           onClick={() => onBuyNow(product)}
-          className="px-3 py-2 bg-brand-green text-white rounded-lg text-xs font-bold hover:bg-green-600 transition-colors"
+          className={cn(
+            "px-3 py-2 rounded-lg text-xs font-bold transition-colors",
+            product.isComingSoon ? "bg-brand-gray text-gray-600 cursor-not-allowed" : "bg-brand-green text-white hover:bg-green-600"
+          )}
         >
           Beli Sekarang
         </button>
@@ -422,7 +435,7 @@ const ProductDetailModal = ({
 
               <div className="flex items-center gap-4">
                 <div className="text-3xl font-black text-brand-red">
-                  Rp {product.price.toLocaleString('id-ID')}
+                  {product.isComingSoon ? 'Coming Soon' : `Rp ${product.price.toLocaleString('id-ID')}`}
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex gap-1 bg-brand-red/10 px-3 py-1 rounded-full">
@@ -501,13 +514,17 @@ const ProductDetailModal = ({
                   </div>
                 </div>
                 <button 
+                  disabled={product.isComingSoon}
                   onClick={() => {
                     onAddToCart(product);
                     onClose();
                   }}
-                  className="w-full btn-primary flex items-center justify-center gap-2"
+                  className={cn(
+                    "w-full btn-primary flex items-center justify-center gap-2",
+                    product.isComingSoon && "opacity-20 cursor-not-allowed bg-brand-gray"
+                  )}
                 >
-                  <ShoppingBag size={20} /> Tambah Ke Keranjang
+                  <ShoppingBag size={20} /> {product.isComingSoon ? 'Segera Hadir' : 'Tambah Ke Keranjang'}
                 </button>
               </div>
             </div>

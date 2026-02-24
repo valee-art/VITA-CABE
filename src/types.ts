@@ -18,6 +18,7 @@ export interface Product {
   category: 'Retail' | 'Wholesale' | 'Reseller';
   stock: number;
   isBestSeller?: boolean;
+  isComingSoon?: boolean;
   reviews?: Review[];
   rating?: number;
   image?: string;
