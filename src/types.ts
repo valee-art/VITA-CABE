@@ -66,4 +66,6 @@ export interface FinanceEntry {
   nominal_komisi?: number;
   untung_owner?: number;
   persentase_komisi?: number;
+  jumlah?: number;
+  productId?: string;
 }

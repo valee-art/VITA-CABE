@@ -1761,7 +1761,9 @@ const AdminDashboard = ({
     keterangan: '',
     hargaJual: 8000,
     jumlah: 1,
-    jenis: 'pemasukan' as 'pemasukan' | 'pengeluaran'
+    jenis: 'pemasukan' as 'pemasukan' | 'pengeluaran',
+    persenKomisi: 10,
+    productId: ''
   });
 
   const handleFinanceSubmit = async (e: React.FormEvent) => {
@@ -1771,19 +1773,21 @@ const AdminDashboard = ({
     let nominal = 0;
     let nominalKomisi = 0;
     let untungOwner = 0;
-    let persentaseKomisi = 0;
+    const modalPerPcs = 5800; // Based on PDF analysis (Modal = Harga - Komisi - Untung)
 
     if (financeForm.jenis === 'pemasukan') {
-      // Logic based on selling price
-      if (financeForm.hargaJual === 8000) persentaseKomisi = 0.05; // 5%
-      else if (financeForm.hargaJual === 9000) persentaseKomisi = 0.10; // 10%
-      else if (financeForm.hargaJual === 10000) persentaseKomisi = 0.15; // 15%
-
+      const persentaseKomisi = financeForm.persenKomisi / 100;
       nominal = financeForm.hargaJual * financeForm.jumlah;
       nominalKomisi = nominal * persentaseKomisi;
-      // Assume basic modal is 6000 per unit for calculation
-      const modal = 6000 * financeForm.jumlah;
-      untungOwner = nominal - nominalKomisi - modal;
+      untungOwner = nominal - nominalKomisi - (modalPerPcs * financeForm.jumlah);
+      
+      // Automatic stock deduction if product is selected
+      if (financeForm.productId) {
+        const product = products.find(p => p.id === financeForm.productId);
+        if (product) {
+          await onUpdateStock(product.id, Math.max(0, product.stock - financeForm.jumlah));
+        }
+      }
     } else {
       nominal = financeForm.hargaJual; // For expenses, use the input value
     }
@@ -1795,7 +1799,9 @@ const AdminDashboard = ({
       harga_jual: financeForm.jenis === 'pemasukan' ? financeForm.hargaJual : undefined,
       nominal_komisi: financeForm.jenis === 'pemasukan' ? nominalKomisi : undefined,
       untung_owner: financeForm.jenis === 'pemasukan' ? untungOwner : undefined,
-      persentase_komisi: financeForm.jenis === 'pemasukan' ? persentaseKomisi * 100 : undefined,
+      persentase_komisi: financeForm.jenis === 'pemasukan' ? financeForm.persenKomisi : undefined,
+      jumlah: financeForm.jenis === 'pemasukan' ? financeForm.jumlah : undefined,
+      productId: financeForm.productId || undefined,
       tanggal: serverTimestamp()
     });
 
@@ -1807,7 +1813,9 @@ const AdminDashboard = ({
       keterangan: '',
       hargaJual: 8000,
       jumlah: 1,
-      jenis: 'pemasukan'
+      jenis: 'pemasukan',
+      persenKomisi: 10,
+      productId: ''
     });
   };
 
@@ -2213,6 +2221,20 @@ const AdminDashboard = ({
                 </div>
 
                 <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Pilih Produk (Potong Stok)</label>
+                  <select 
+                    className="w-full bg-brand-gray border-none rounded-xl p-3 text-xs"
+                    value={financeForm.productId}
+                    onChange={e => setFinanceForm({...financeForm, productId: e.target.value})}
+                  >
+                    <option value="">-- Pilih Produk --</option>
+                    {products.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} (Stok: {p.stock})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
                   <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Keterangan</label>
                   <input 
                     type="text" 
@@ -2233,7 +2255,7 @@ const AdminDashboard = ({
                           <button 
                             key={price}
                             type="button"
-                            onClick={() => setFinanceForm({...financeForm, hargaJual: price})}
+                            onClick={() => setFinanceForm({...financeForm, hargaJual: price, persenKomisi: 10})}
                             className={cn(
                               "py-2 rounded-xl text-[10px] font-bold transition-all",
                               financeForm.hargaJual === price ? "bg-white/20 text-white" : "bg-white/5 text-gray-500"
@@ -2242,6 +2264,26 @@ const AdminDashboard = ({
                         ))}
                       </div>
                     </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Persen Komisi (Sesuai PDF)</label>
+                      <div className="flex flex-wrap gap-2">
+                        {(financeForm.hargaJual === 8000 ? [10, 20] : 
+                          financeForm.hargaJual === 9000 ? [10, 20, 30] : 
+                          [10, 20, 30, 40]).map(pct => (
+                          <button 
+                            key={pct}
+                            type="button"
+                            onClick={() => setFinanceForm({...financeForm, persenKomisi: pct})}
+                            className={cn(
+                              "px-3 py-2 rounded-xl text-[10px] font-bold transition-all",
+                              financeForm.persenKomisi === pct ? "bg-brand-red text-white" : "bg-white/5 text-gray-500"
+                            )}
+                          >{pct}%</button>
+                        ))}
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Jumlah (Pcs)</label>
                       <input 
