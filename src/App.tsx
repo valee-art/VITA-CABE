@@ -73,6 +73,8 @@ const getSocialIcon = (platform: string) => {
 
 import { PRODUCTS, CONTACT_INFO, TESTIMONIALS } from './constants';
 import { getFinanceData, getProducts, saveProduct, removeProduct, getOrders, saveOrder, updateOrderStatusFirebase } from './services/firebaseService';
+import { loginWithFirebase, registerWithFirebase, logoutFromFirebase, subscribeToAuthChanges } from './services/authService';
+import { User } from 'firebase/auth';
 
 // --- Components ---
 
@@ -1716,9 +1718,20 @@ const AdminDashboard = ({
   onUpdateSocials: (links: SocialLink[]) => void
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [username, setUsername] = useState('');
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToAuthChanges((user) => {
+      setCurrentUser(user);
+      setIsAuthenticated(!!user);
+    });
+    return () => unsubscribe();
+  }, []);
   const [activeTab, setActiveTab] = useState<'finance' | 'stock' | 'customers' | 'socials'>('finance');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
@@ -1808,20 +1821,25 @@ const AdminDashboard = ({
     setShowAddForm(true);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    const validUsers = [
-      { user: 'vale', pass: 'LinElaraNoxaVale' },
-      { user: 'selvia', pass: 'selviaVitaCabe89' }
-    ];
-
-    const found = validUsers.find(u => u.user === username.toLowerCase() && u.pass === password);
-    if (found) {
-      setIsAuthenticated(true);
-      setError('');
-    } else {
-      setError('Username atau Password salah!');
+    setIsLoading(true);
+    setError('');
+    try {
+      if (isRegisterMode) {
+        await registerWithFirebase(email, password);
+      } else {
+        await loginWithFirebase(email, password);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Terjadi kesalahan saat otentikasi');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleLogout = async () => {
+    await logoutFromFirebase();
   };
 
   const totalRevenue = orders.reduce((acc, order) => acc + order.total, 0);
@@ -1929,37 +1947,87 @@ const AdminDashboard = ({
 
   if (!isAuthenticated) {
     return (
-      <div className="pt-32 pb-24 px-4 flex items-center justify-center min-h-[60vh]">
-        <div className="card max-w-md w-full bg-brand-dark border-white/10 p-8 space-y-8">
+      <div className="min-h-[80vh] flex items-center justify-center px-4">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md bg-brand-gray p-10 rounded-[2.5rem] border border-white/5 shadow-2xl space-y-8"
+        >
           <div className="text-center space-y-2">
-            <h2 className="text-3xl font-black text-white">Admin Login</h2>
-            <p className="text-gray-500 text-sm">Khusus Vale & Selvia</p>
+            <div className="w-16 h-16 bg-brand-red/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <ShieldCheck className="text-brand-red" size={32} />
+            </div>
+            <h2 className="text-3xl font-black text-white">{isRegisterMode ? 'Daftar Admin' : 'Admin Login'}</h2>
+            <p className="text-gray-500 text-sm">
+              {isRegisterMode ? 'Buat akun admin baru VITA CABE' : 'Masuk untuk mengelola VITA CABE'}
+            </p>
           </div>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-gray-400">Username</label>
-              <input 
-                type="text" 
-                className="w-full bg-brand-gray border-none rounded-xl p-4 text-white focus:ring-2 focus:ring-brand-red" 
-                placeholder="vale / selvia"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-              />
+
+          <form onSubmit={handleAuth} className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                  <input 
+                    type="email" 
+                    required
+                    placeholder="admin@vitacabe.com"
+                    className="w-full bg-brand-dark border-none rounded-2xl pl-12 pr-4 py-4 text-sm focus:ring-2 focus:ring-brand-red transition-all text-white"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Password</label>
+                <div className="relative">
+                  <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                  <input 
+                    type="password" 
+                    required
+                    placeholder="••••••••"
+                    className="w-full bg-brand-dark border-none rounded-2xl pl-12 pr-4 py-4 text-sm focus:ring-2 focus:ring-brand-red transition-all text-white"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-gray-400">Password</label>
-              <input 
-                type="password" 
-                className="w-full bg-brand-gray border-none rounded-xl p-4 text-white focus:ring-2 focus:ring-brand-red" 
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-              />
-            </div>
-            {error && <p className="text-brand-red text-xs font-bold">{error}</p>}
-            <button type="submit" className="w-full btn-primary py-4">Masuk Dashboard</button>
+
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-brand-red/10 border border-brand-red/20 p-4 rounded-xl flex items-center gap-3 text-brand-red text-xs font-bold"
+              >
+                <AlertCircle size={16} />
+                {error}
+              </motion.div>
+            )}
+
+            <button 
+              type="submit" 
+              disabled={isLoading}
+              className="w-full btn-primary py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-brand-red/20 flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                isRegisterMode ? 'Daftar Sekarang' : 'Masuk Dashboard'
+              )}
+            </button>
           </form>
-        </div>
+
+          <div className="text-center">
+            <button 
+              onClick={() => setIsRegisterMode(!isRegisterMode)}
+              className="text-xs font-bold text-gray-500 hover:text-brand-red transition-colors"
+            >
+              {isRegisterMode ? 'Sudah punya akun? Login' : 'Belum punya akun? Daftar'}
+            </button>
+          </div>
+        </motion.div>
       </div>
     );
   }
@@ -2008,7 +2076,7 @@ const AdminDashboard = ({
           >
             Media Sosial
           </button>
-          <button onClick={() => setIsAuthenticated(false)} className="px-4 py-2 text-[10px] font-bold text-gray-500 hover:text-brand-red uppercase tracking-widest">Logout</button>
+          <button onClick={handleLogout} className="px-4 py-2 text-[10px] font-bold text-gray-500 hover:text-brand-red uppercase tracking-widest">Logout</button>
         </div>
       </div>
 
