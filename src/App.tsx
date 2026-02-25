@@ -72,9 +72,11 @@ const getSocialIcon = (platform: string) => {
 };
 
 import { PRODUCTS, CONTACT_INFO, TESTIMONIALS } from './constants';
-import { getFinanceData, getProducts, saveProduct, removeProduct, getOrders, saveOrder, updateOrderStatusFirebase } from './services/firebaseService';
+import { getFinanceData, getProducts, saveProduct, removeProduct, getOrders, saveOrder, updateOrderStatusFirebase, addFinanceEntry } from './services/firebaseService';
 import { loginWithFirebase, registerWithFirebase, logoutFromFirebase, subscribeToAuthChanges } from './services/authService';
 import { User } from 'firebase/auth';
+import { FinanceEntry } from './types';
+import { serverTimestamp } from 'firebase/firestore';
 
 // --- Components ---
 
@@ -1752,8 +1754,62 @@ const AdminDashboard = ({
   });
 
   const [localSocials, setLocalSocials] = useState<SocialLink[]>(socialLinks);
-  const [firebaseFinance, setFirebaseFinance] = useState<{ totalNominal: number, entries: any[], docCount: number } | null>(null);
+  const [firebaseFinance, setFirebaseFinance] = useState<{ totalNominal: number, entries: FinanceEntry[], docCount: number } | null>(null);
   const [isFetchingFirebase, setIsFetchingFirebase] = useState(false);
+
+  const [financeForm, setFinanceForm] = useState({
+    keterangan: '',
+    hargaJual: 8000,
+    jumlah: 1,
+    jenis: 'pemasukan' as 'pemasukan' | 'pengeluaran'
+  });
+
+  const handleFinanceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsFetchingFirebase(true);
+    
+    let nominal = 0;
+    let nominalKomisi = 0;
+    let untungOwner = 0;
+    let persentaseKomisi = 0;
+
+    if (financeForm.jenis === 'pemasukan') {
+      // Logic based on selling price
+      if (financeForm.hargaJual === 8000) persentaseKomisi = 0.05; // 5%
+      else if (financeForm.hargaJual === 9000) persentaseKomisi = 0.10; // 10%
+      else if (financeForm.hargaJual === 10000) persentaseKomisi = 0.15; // 15%
+
+      nominal = financeForm.hargaJual * financeForm.jumlah;
+      nominalKomisi = nominal * persentaseKomisi;
+      // Assume basic modal is 6000 per unit for calculation
+      const modal = 6000 * financeForm.jumlah;
+      untungOwner = nominal - nominalKomisi - modal;
+    } else {
+      nominal = financeForm.hargaJual; // For expenses, use the input value
+    }
+
+    await addFinanceEntry({
+      keterangan: financeForm.keterangan,
+      nominal: nominal,
+      jenis: financeForm.jenis,
+      harga_jual: financeForm.jenis === 'pemasukan' ? financeForm.hargaJual : undefined,
+      nominal_komisi: financeForm.jenis === 'pemasukan' ? nominalKomisi : undefined,
+      untung_owner: financeForm.jenis === 'pemasukan' ? untungOwner : undefined,
+      persentase_komisi: financeForm.jenis === 'pemasukan' ? persentaseKomisi * 100 : undefined,
+      tanggal: serverTimestamp()
+    });
+
+    const data = await getFinanceData();
+    if (data) setFirebaseFinance(data);
+    setIsFetchingFirebase(false);
+    
+    setFinanceForm({
+      keterangan: '',
+      hargaJual: 8000,
+      jumlah: 1,
+      jenis: 'pemasukan'
+    });
+  };
 
   useEffect(() => {
     if (isAuthenticated && activeTab === 'finance') {
@@ -2123,6 +2179,160 @@ const AdminDashboard = ({
               <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Stok Menipis</div>
               <div className="text-3xl font-black text-yellow-500">{lowStockCount}</div>
               <div className="text-[10px] text-gray-400">Produk dengan stok &lt; 10 pcs</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Input Penjualan Otomatis */}
+            <div className="card bg-brand-dark border border-white/5 p-8 space-y-6">
+              <div className="flex items-center gap-2">
+                <Plus className="text-brand-red" size={20} />
+                <h2 className="text-xl font-black">Input Penjualan / Biaya</h2>
+              </div>
+              <form onSubmit={handleFinanceSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Jenis Transaksi</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button 
+                      type="button"
+                      onClick={() => setFinanceForm({...financeForm, jenis: 'pemasukan'})}
+                      className={cn(
+                        "py-2 rounded-xl text-[10px] font-bold uppercase transition-all",
+                        financeForm.jenis === 'pemasukan' ? "bg-brand-green text-white" : "bg-white/5 text-gray-500"
+                      )}
+                    >Pemasukan</button>
+                    <button 
+                      type="button"
+                      onClick={() => setFinanceForm({...financeForm, jenis: 'pengeluaran'})}
+                      className={cn(
+                        "py-2 rounded-xl text-[10px] font-bold uppercase transition-all",
+                        financeForm.jenis === 'pengeluaran' ? "bg-brand-red text-white" : "bg-white/5 text-gray-500"
+                      )}
+                    >Pengeluaran</button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Keterangan</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="e.g. Penjualan Reseller A"
+                    className="w-full bg-brand-gray border-none rounded-xl p-3 text-xs"
+                    value={financeForm.keterangan}
+                    onChange={e => setFinanceForm({...financeForm, keterangan: e.target.value})}
+                  />
+                </div>
+
+                {financeForm.jenis === 'pemasukan' ? (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Harga Jual (Pilih)</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[8000, 9000, 10000].map(price => (
+                          <button 
+                            key={price}
+                            type="button"
+                            onClick={() => setFinanceForm({...financeForm, hargaJual: price})}
+                            className={cn(
+                              "py-2 rounded-xl text-[10px] font-bold transition-all",
+                              financeForm.hargaJual === price ? "bg-white/20 text-white" : "bg-white/5 text-gray-500"
+                            )}
+                          >{price/1000}rb</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Jumlah (Pcs)</label>
+                      <input 
+                        type="number" 
+                        required
+                        min="1"
+                        className="w-full bg-brand-gray border-none rounded-xl p-3 text-xs"
+                        value={financeForm.jumlah}
+                        onChange={e => setFinanceForm({...financeForm, jumlah: parseInt(e.target.value) || 1})}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Nominal Biaya (Rp)</label>
+                    <input 
+                      type="number" 
+                      required
+                      className="w-full bg-brand-gray border-none rounded-xl p-3 text-xs"
+                      value={financeForm.hargaJual}
+                      onChange={e => setFinanceForm({...financeForm, hargaJual: parseInt(e.target.value) || 0})}
+                    />
+                  </div>
+                )}
+
+                <button 
+                  type="submit" 
+                  disabled={isFetchingFirebase}
+                  className="w-full btn-primary py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2"
+                >
+                  {isFetchingFirebase ? 'Menyimpan...' : 'Simpan Transaksi'}
+                </button>
+              </form>
+            </div>
+
+            {/* Riwayat Keuangan Firebase */}
+            <div className="lg:col-span-2 card bg-brand-dark border border-white/5 p-8 space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="text-brand-green" size={20} />
+                  <h2 className="text-xl font-black">Riwayat Keuangan Cloud</h2>
+                </div>
+                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                  {firebaseFinance?.entries.length || 0} Entri Terakhir
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="text-[10px] font-bold uppercase tracking-widest text-gray-500 border-b border-white/5">
+                      <th className="pb-4 pr-4">Keterangan</th>
+                      <th className="pb-4 pr-4">Jenis</th>
+                      <th className="pb-4 pr-4">Nominal</th>
+                      <th className="pb-4 pr-4">Komisi</th>
+                      <th className="pb-4">Untung</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {firebaseFinance?.entries.map((entry, i) => (
+                      <tr key={i} className="text-xs">
+                        <td className="py-4 pr-4">
+                          <div className="font-bold text-white">{entry.keterangan}</div>
+                          <div className="text-[10px] text-gray-500">
+                            {entry.tanggal?.seconds ? new Date(entry.tanggal.seconds * 1000).toLocaleDateString('id-ID') : 'Baru saja'}
+                          </div>
+                        </td>
+                        <td className="py-4 pr-4">
+                          <span className={cn(
+                            "px-2 py-0.5 rounded-full text-[8px] font-bold uppercase",
+                            entry.jenis === 'pemasukan' ? "bg-brand-green/10 text-brand-green" : "bg-brand-red/10 text-brand-red"
+                          )}>
+                            {entry.jenis}
+                          </span>
+                        </td>
+                        <td className="py-4 pr-4 font-bold">Rp {entry.nominal.toLocaleString('id-ID')}</td>
+                        <td className="py-4 pr-4 text-gray-400">
+                          {entry.nominal_komisi ? `Rp ${entry.nominal_komisi.toLocaleString('id-ID')}` : '-'}
+                        </td>
+                        <td className="py-4 font-black text-brand-green">
+                          {entry.untung_owner ? `Rp ${entry.untung_owner.toLocaleString('id-ID')}` : '-'}
+                        </td>
+                      </tr>
+                    ))}
+                    {(!firebaseFinance || firebaseFinance.entries.length === 0) && (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-gray-500 italic">Belum ada riwayat transaksi cloud</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 

@@ -55,3 +55,15 @@ export interface SocialLink {
   platform: string;
   url: string;
 }
+
+export interface FinanceEntry {
+  id?: string;
+  tanggal: any;
+  keterangan: string;
+  nominal: number;
+  jenis: 'pemasukan' | 'pengeluaran';
+  harga_jual?: number;
+  nominal_komisi?: number;
+  untung_owner?: number;
+  persentase_komisi?: number;
+}

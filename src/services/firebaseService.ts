@@ -1,6 +1,6 @@
-import { collection, getDocs, query, orderBy, doc, setDoc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, doc, setDoc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { getFirebaseDB } from '../firebase';
-import { Product, OrderData } from '../types';
+import { Product, OrderData, FinanceEntry } from '../types';
 
 export const getFinanceData = async () => {
   const db = getFirebaseDB();
@@ -12,7 +12,7 @@ export const getFinanceData = async () => {
     const querySnapshot = await getDocs(keuanganRef);
     
     let totalNominal = 0;
-    const data: any[] = [];
+    const data: FinanceEntry[] = [];
 
     if (querySnapshot.empty) {
       console.warn('Koleksi "keuangan" ditemukan tetapi tidak ada dokumen di dalamnya.');
@@ -27,23 +27,25 @@ export const getFinanceData = async () => {
       const nominal = Number(rawNominal) || 0;
       
       // Cari field jenis (cek variasi: jenis, Jenis, JENIS)
-      const rawJenis = docData.jenis ?? docData.Jenis ?? docData.JENIS ?? 'pemasukan';
-      const jenis = String(rawJenis).toLowerCase();
+      const rawJenis = String(docData.jenis ?? docData.Jenis ?? docData.JENIS ?? 'pemasukan').toLowerCase();
+      const jenis = (rawJenis === 'pengeluaran' || rawJenis === 'keluar' || rawJenis === 'expense') 
+        ? 'pengeluaran' 
+        : 'pemasukan';
 
       // Logika Pemasukan vs Pengeluaran
-      if (jenis === 'pengeluaran' || jenis === 'keluar' || jenis === 'expense') {
+      if (jenis === 'pengeluaran') {
         totalNominal -= nominal;
       } else {
         totalNominal += nominal;
       }
 
-      data.push({ id: doc.id, ...docData, nominal, jenis });
+      data.push({ id: doc.id, ...docData, nominal, jenis } as FinanceEntry);
     });
 
-    // Urutkan secara manual berdasarkan tanggal (jika ada field tanggal/date)
+    // Urutkan secara manual berdasarkan tanggal (jika ada field tanggal)
     data.sort((a, b) => {
-      const dateA = a.tanggal?.seconds || a.date?.seconds || 0;
-      const dateB = b.tanggal?.seconds || b.date?.seconds || 0;
+      const dateA = a.tanggal?.seconds || 0;
+      const dateB = b.tanggal?.seconds || 0;
       return dateB - dateA;
     });
 
@@ -55,6 +57,21 @@ export const getFinanceData = async () => {
   } catch (error) {
     console.error('Error fetching finance data from Firebase:', error);
     return null;
+  }
+};
+
+export const addFinanceEntry = async (entry: Omit<FinanceEntry, 'id'>) => {
+  const db = getFirebaseDB();
+  if (!db) return;
+
+  try {
+    const keuanganRef = collection(db, 'keuangan');
+    await addDoc(keuanganRef, {
+      ...entry,
+      tanggal: entry.tanggal || serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error adding finance entry to Firebase:', error);
   }
 };
 
