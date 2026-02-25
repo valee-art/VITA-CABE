@@ -14,28 +14,13 @@ const firebaseConfig = {
 
 console.log("Firebase Key:", firebaseConfig.apiKey);
 
-// Lazy initialization to prevent crash if config is missing
-let app: any;
-let db: any = null;
-let auth: any = null;
+// Initialize Firebase
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-const getOrInitApp = () => {
-  if (!app) {
-    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-  }
-  return app;
-};
+export { app, db, auth };
 
-export const getFirebaseDB = () => {
-  if (!db) {
-    db = getFirestore(getOrInitApp());
-  }
-  return db;
-};
-
-export const getFirebaseAuth = () => {
-  if (!auth) {
-    auth = getAuth(getOrInitApp());
-  }
-  return auth;
-};
+// Getter functions for backward compatibility
+export const getFirebaseDB = () => db;
+export const getFirebaseAuth = () => auth;
