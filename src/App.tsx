@@ -2010,6 +2010,7 @@ const AdminDashboard = ({
   }, [orders]);
 
   if (!isAuthenticated) {
+    console.log("Current Key:", "AIzaSyB09836...5Zc8");
     return (
       <div className="min-h-[80vh] flex items-center justify-center px-4">
         <motion.div 
