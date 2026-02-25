@@ -12,6 +12,8 @@ const firebaseConfig = {
   measurementId: 'G-QFJ6EN2QST'
 };
 
+console.log("Firebase Key:", firebaseConfig.apiKey);
+
 // Lazy initialization to prevent crash if config is missing
 let app: any;
 let db: any = null;
