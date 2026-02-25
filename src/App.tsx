@@ -2064,10 +2064,18 @@ const AdminDashboard = ({
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-brand-red/10 border border-brand-red/20 p-4 rounded-xl flex items-center gap-3 text-brand-red text-xs font-bold"
+                className="bg-brand-red/10 border border-brand-red/20 p-4 rounded-xl space-y-2 text-brand-red text-xs"
               >
-                <AlertCircle size={16} />
-                {error}
+                <div className="flex items-center gap-2 font-black uppercase tracking-widest">
+                  <AlertCircle size={14} />
+                  <span>Gagal Otentikasi</span>
+                </div>
+                <p className="font-medium leading-relaxed opacity-90">
+                  Detail: {error}
+                </p>
+                <p className="text-[10px] italic opacity-60">
+                  Saran: Cek koneksi internet atau hubungi Admin jika API Key bermasalah.
+                </p>
               </motion.div>
             )}
 
