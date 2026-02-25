@@ -56,16 +56,40 @@ export interface SocialLink {
   url: string;
 }
 
+export type UserRole = 'admin' | 'reseller' | 'user';
+
+export interface UserProfile {
+  uid: string;
+  email: string;
+  role: UserRole;
+  displayName?: string;
+}
+
 export interface FinanceEntry {
   id?: string;
   tanggal: any;
   keterangan: string;
-  nominal: number;
+  nominal: number; // Total Harga Cabe (tanpa ongkir)
   jenis: 'pemasukan' | 'pengeluaran';
-  harga_jual?: number;
-  nominal_komisi?: number;
-  untung_owner?: number;
-  persentase_komisi?: number;
-  jumlah?: number;
+  weight: '100g' | '200g' | '500g';
+  harga_cabe: number;
+  ongkir: number;
+  total_bayar: number;
+  nominal_komisi: number;
+  untung_owner: number;
+  jumlah: number;
   productId?: string;
+  customerName: string;
+  customerPhone: string;
+  resellerId?: string;
+  resellerName?: string;
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  totalOrders: number;
+  totalSpent: number;
+  lastOrder: any;
 }
