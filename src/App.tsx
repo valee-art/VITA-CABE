@@ -149,7 +149,6 @@ export default function App() {
 
   // App State
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isAuthView, setIsAuthView] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [financeData, setFinanceData] = useState<{ totalNominal: number, totalKomisi: number, entries: FinanceEntry[] } | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -176,10 +175,10 @@ export default function App() {
     try {
       const [pData, fData, cData, uData] = await Promise.all([
         getProducts(),
-        profile ? getFinanceData(
+        getFinanceData(
           profile?.role === 'reseller' ? user?.uid : undefined,
           profile?.role === 'user' ? profile?.displayName : undefined
-        ) : Promise.resolve(null),
+        ),
         profile?.role === 'admin' ? getCustomers() : Promise.resolve([]),
         profile?.role === 'admin' ? getAllUsers() : Promise.resolve([])
       ]);
@@ -240,216 +239,119 @@ export default function App() {
   }
 
   if (!user) {
-    if (isAuthView) {
-      return (
-        <div className="min-h-screen bg-brand-black flex items-center justify-center p-4 relative overflow-hidden">
-          {/* Background Effects */}
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-red/20 blur-[120px] rounded-full" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-red/10 blur-[120px] rounded-full" />
-          
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-md glass-morphism p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative z-10"
-          >
-            <div className="flex justify-between items-center mb-6">
-              <button 
-                onClick={() => setIsAuthView(false)}
-                className="p-2 hover:bg-white/5 rounded-full transition-colors"
-              >
-                <X size={20} />
-              </button>
-              <div className="inline-flex items-center gap-2">
-                <span className="text-xl font-black tracking-tighter text-brand-red">VITA</span>
-                <span className="text-xl font-black tracking-tighter text-white">CABE</span>
-              </div>
-              <div className="w-8" />
-            </div>
-
-            <div className="text-center mb-8">
-              <p className="text-gray-400 text-sm font-medium">
-                {isRegisterMode ? 'Daftar akun baru untuk mulai' : 'Masuk untuk mengelola bisnis Anda'}
-              </p>
-            </div>
-
-            <form onSubmit={handleAuth} className="space-y-5">
-              {isRegisterMode && (
-                <>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Nama Lengkap</label>
-                    <input 
-                      type="text" 
-                      required
-                      placeholder="Masukkan nama Anda"
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-brand-red transition-all text-white outline-none"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Daftar Sebagai</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button 
-                        type="button"
-                        onClick={() => setRegRole('user')}
-                        className={cn(
-                          "py-3 rounded-xl text-xs font-bold transition-all border",
-                          regRole === 'user' ? "bg-brand-red border-brand-red text-white" : "bg-white/5 border-white/10 text-gray-500"
-                        )}
-                      >Pelanggan</button>
-                      <button 
-                        type="button"
-                        onClick={() => setRegRole('reseller')}
-                        className={cn(
-                          "py-3 rounded-xl text-xs font-bold transition-all border",
-                          regRole === 'reseller' ? "bg-brand-red border-brand-red text-white" : "bg-white/5 border-white/10 text-gray-500"
-                        )}
-                      >Reseller</button>
-                    </div>
-                  </div>
-                </>
-              )}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Email</label>
-                <input 
-                  type="email" 
-                  required
-                  placeholder="admin@vitacabe.com"
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-brand-red transition-all text-white outline-none"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Password</label>
-                <input 
-                  type="password" 
-                  required
-                  placeholder="••••••••"
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-brand-red transition-all text-white outline-none"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-
-              {authError && (
-                <div className="bg-brand-red/10 border border-brand-red/20 p-4 rounded-xl text-brand-red text-xs font-bold flex items-center gap-2">
-                  <AlertCircle size={14} />
-                  {authError}
-                </div>
-              )}
-
-              <button 
-                type="submit" 
-                disabled={isSubmitting}
-                className="w-full bg-brand-red hover:bg-red-600 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-brand-red/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-              >
-                {isSubmitting ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  isRegisterMode ? 'Daftar Sekarang' : 'Masuk Dashboard'
-                )}
-              </button>
-            </form>
-
-            <div className="mt-8 text-center">
-              <button 
-                onClick={() => {
-                  setIsRegisterMode(!isRegisterMode);
-                  setAuthError('');
-                }}
-                className="text-xs font-bold text-gray-500 hover:text-brand-red transition-colors"
-              >
-                {isRegisterMode ? 'Sudah punya akun? Masuk di sini' : 'Belum punya akun? Daftar gratis'}
-              </button>
-            </div>
-          </motion.div>
-          <ToastContainer toasts={toasts} removeToast={removeToast} />
-        </div>
-      );
-    }
-
     return (
-      <div className="min-h-screen bg-brand-black text-white p-4 md:p-10 relative overflow-hidden">
+      <div className="min-h-screen bg-brand-black flex items-center justify-center p-4 relative overflow-hidden">
         {/* Background Effects */}
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-red/10 blur-[120px] rounded-full" />
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-red/20 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-red/10 blur-[120px] rounded-full" />
         
-        <header className="max-w-7xl mx-auto flex justify-between items-center mb-16 relative z-10">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-brand-red rounded-xl flex items-center justify-center shadow-lg shadow-brand-red/20">
-              <Flame className="text-white" size={24} />
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md glass-morphism p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative z-10"
+        >
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 mb-2">
+              <span className="text-3xl font-black tracking-tighter text-brand-red">VITA</span>
+              <span className="text-3xl font-black tracking-tighter text-white">CABE</span>
             </div>
-            <div>
-              <div className="text-xl font-black tracking-tighter leading-none">VITA CABE</div>
-              <div className="text-[10px] font-bold text-brand-red uppercase tracking-widest">Official Catalog</div>
-            </div>
-          </div>
-          <button 
-            onClick={() => setIsAuthView(true)}
-            className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest transition-all"
-          >
-            Masuk Panel
-          </button>
-        </header>
-
-        <main className="max-w-7xl mx-auto relative z-10">
-          <div className="text-center mb-16">
-            <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-4">CABAI RAWIT <span className="text-brand-red">PREMIUM</span></h1>
-            <p className="text-gray-500 max-w-2xl mx-auto">Kualitas terbaik langsung dari petani. Pedas alami, segar, dan tahan lama untuk kebutuhan dapur Anda.</p>
+            <p className="text-gray-400 text-sm font-medium">
+              {isRegisterMode ? 'Daftar akun baru untuk mulai' : 'Masuk untuk mengelola bisnis Anda'}
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
-            {products.length > 0 ? products.map((p) => (
-              <motion.div 
-                key={p.id}
-                whileHover={{ y: -10 }}
-                className="glass-morphism p-8 rounded-[3rem] border border-white/5 flex flex-col items-center text-center space-y-6 group"
-              >
-                <div className="w-24 h-24 bg-brand-red/10 rounded-[2rem] flex items-center justify-center text-brand-red group-hover:scale-110 transition-transform">
-                  <Box size={48} />
+          <form onSubmit={handleAuth} className="space-y-5">
+            {isRegisterMode && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Nama Lengkap</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="Masukkan nama Anda"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-brand-red transition-all text-white outline-none"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                  />
                 </div>
-                <div>
-                  <h3 className="text-2xl font-black mb-2">{p.name}</h3>
-                  <p className="text-gray-500 text-sm line-clamp-2 mb-4">{p.description}</p>
-                  <div className="text-3xl font-black text-brand-red">Rp {p.price.toLocaleString('id-ID')}</div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Daftar Sebagai</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button 
+                      type="button"
+                      onClick={() => setRegRole('user')}
+                      className={cn(
+                        "py-3 rounded-xl text-xs font-bold transition-all border",
+                        regRole === 'user' ? "bg-brand-red border-brand-red text-white" : "bg-white/5 border-white/10 text-gray-500"
+                      )}
+                    >Pelanggan</button>
+                    <button 
+                      type="button"
+                      onClick={() => setRegRole('reseller')}
+                      className={cn(
+                        "py-3 rounded-xl text-xs font-bold transition-all border",
+                        regRole === 'reseller' ? "bg-brand-red border-brand-red text-white" : "bg-white/5 border-white/10 text-gray-500"
+                      )}
+                    >Reseller</button>
+                  </div>
                 </div>
-                <div className="w-full pt-6 border-t border-white/5 flex justify-between items-center">
-                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Stok Tersedia</div>
-                  <div className="px-3 py-1 bg-brand-green/10 text-brand-green rounded-full text-[10px] font-black">{p.stock} Pcs</div>
-                </div>
-              </motion.div>
-            )) : (
-              <div className="col-span-full text-center py-20 bg-white/5 rounded-[3rem] border border-white/5 border-dashed">
-                <p className="text-gray-500 font-bold uppercase tracking-widest">Katalog sedang dimuat...</p>
+              </>
+            )}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Email</label>
+              <input 
+                type="email" 
+                required
+                placeholder="admin@vitacabe.com"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-brand-red transition-all text-white outline-none"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Password</label>
+              <input 
+                type="password" 
+                required
+                placeholder="••••••••"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-brand-red transition-all text-white outline-none"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
+            {authError && (
+              <div className="bg-brand-red/10 border border-brand-red/20 p-4 rounded-xl text-brand-red text-xs font-bold flex items-center gap-2">
+                <AlertCircle size={14} />
+                {authError}
               </div>
             )}
-          </div>
 
-          <div className="glass-morphism p-12 rounded-[4rem] border border-brand-red/20 text-center space-y-6">
-            <h2 className="text-3xl md:text-4xl font-black">Siap Untuk Memesan?</h2>
-            <p className="text-gray-400 max-w-xl mx-auto">Hubungi admin kami untuk pemesanan cepat atau informasi reseller di wilayah Anda.</p>
-            <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-              <a 
-                href={`https://wa.me/${CONTACT_INFO.admin.phone}`} 
-                target="_blank" 
-                rel="noreferrer"
-                className="w-full md:w-auto bg-brand-green px-10 py-5 rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-brand-green/20 hover:scale-105 transition-transform"
-              >
-                <MessageCircle size={20} /> Pesan via WhatsApp
-              </a>
-              <button 
-                onClick={() => setIsAuthView(true)}
-                className="w-full md:w-auto bg-white/5 px-10 py-5 rounded-2xl font-black uppercase tracking-widest border border-white/10 hover:bg-white/10 transition-all"
-              >
-                Daftar Reseller
-              </button>
-            </div>
-          </div>
-        </main>
+            <button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="w-full bg-brand-red hover:bg-red-600 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-brand-red/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+            >
+              {isSubmitting ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                isRegisterMode ? 'Daftar Sekarang' : 'Masuk Dashboard'
+              )}
+            </button>
+          </form>
 
-        <footer className="max-w-7xl mx-auto mt-20 pt-10 border-t border-white/5 text-center text-gray-600 text-[10px] font-bold uppercase tracking-widest">
-          &copy; 2026 VITA CABE PREMIUM. ALL RIGHTS RESERVED.
-        </footer>
+          <div className="mt-8 text-center">
+            <button 
+              onClick={() => {
+                setIsRegisterMode(!isRegisterMode);
+                setAuthError('');
+              }}
+              className="text-xs font-bold text-gray-500 hover:text-brand-red transition-colors"
+            >
+              {isRegisterMode ? 'Sudah punya akun? Masuk di sini' : 'Belum punya akun? Daftar gratis'}
+            </button>
+          </div>
+        </motion.div>
         <ToastContainer toasts={toasts} removeToast={removeToast} />
       </div>
     );
